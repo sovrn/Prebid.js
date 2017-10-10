@@ -20,7 +20,7 @@ var SovrnAdapter = function SovrnAdapter() {
   function _requestBids(bidReqs) {
     // build bid request object
     var domain = window.location.host;
-    var page = window.location.pathname + location.search + location.hash;
+    var page = window.location.host + window.location.pathname + location.search + location.hash;
 
     var sovrnImps = [];
 
