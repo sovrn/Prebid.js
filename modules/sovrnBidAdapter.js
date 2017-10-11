@@ -5,12 +5,13 @@
 
 import * as utils from 'src/utils';
 import { registerBidder } from 'src/adapters/bidderFactory';
+import { BANNER } from 'src/mediaTypes';
 
 const BIDDER_CODE = 'sovrn';
 const URL = '//ap.lijit.com/rtb/bid';
-import { BANNER } from 'src/mediaTypes';
 const USER_PARAMS = ['tagid', 'bidfloor', 'dealid'];
 const SOURCE = 'pbjs';
+var bidid;
 
 export const spec = {
   code: BIDDER_CODE,
@@ -31,6 +32,7 @@ export const spec = {
     const page = window.location.pathname + location.search + location.hash;
     let sovrnImps = [];
     utils._each(bidReqs, function (bid) {
+      bidid = bid.bidId;
       const tagId = utils.getBidIdParameter('tagid', bid.params);
       const bidFloor = utils.getBidIdParameter('bidfloor', bid.params);
 
@@ -48,7 +50,6 @@ export const spec = {
         };
       sovrnImps.push(imp);
     });
-
     var sovrnBidReq = {
       id: utils.getUniqueIdentifierStr(),
       imp: sovrnImps,
@@ -57,16 +58,13 @@ export const spec = {
         page: page
       }
     };
-
     const payloadString = JSON.stringify(sovrnBidReq);
     return {
       method: 'POST',
       url: URL,
       data: payloadString,
     };
-
   },
-
   /**
    * Unpack the response from the server into a list of bids.
    *
@@ -96,20 +94,17 @@ export const spec = {
     if (sovrnResponse && sovrnResponse.id && sovrnResponse.seatbid && sovrnResponse.seatbid.length !== 0 &&
       sovrnResponse.seatbid[0].bid && sovrnResponse.seatbid[0].bid.length !== 0) {
       sovrnResponse.seatbid[0].bid.forEach(sovrnBid => {
-
         let bidObj = utils.getBidRequest(sovrnBid.impid);
-
         if (bidObj && sovrnBid.price && sovrnBid.price !== 0) {
-
           const bidResponse = {
-            requestId: bidObj.placementCode,
+            requestId: bidid,
             bidderCode: spec.code,
             cpm: parseFloat(sovrnBid.price),
             width: parseInt(sovrnBid.w),
             height: parseInt(sovrnBid.h),
             creativeId: sovrnBid.id,
             dealId: sovrnBid.dealid || null,
-            currency: "USD",
+            currency: 'USD',
             netRevenue: true,
             mediaType: BANNER,
             // ttl: 60,
@@ -117,6 +112,7 @@ export const spec = {
             // ad: decodeURIComponent(responseAd + responseNurl)
             ad: decodeURIComponent(`${sovrnBid.adm}<img src=${sovrnBid.nurl}>`)
           };
+          bidmanager.addBidResponse(bidObj.placementCode, bidResponse);
           sovrnBidResponses.push(bidResponse);
         }
       })
