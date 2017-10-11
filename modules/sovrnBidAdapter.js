@@ -137,69 +137,77 @@ export const spec = {
     return !!(bid.params.tagid && !isNaN(parseFloat(bid.params.tagid)) && isFinite(bid.params.tagid));
   },
 
+  /**
+   * Make a server request from the list of BidRequests.
+   *
+   * @param {BidRequest[]} bidRequests A non-empty list of bid requests which should be sent to the Server.
+   * @return ServerRequest Info describing the request to the server.
+   */
   buildRequests: function(bidRequests) {
-
+    return {
+      method: 'POST'
+      url: URL,
+      data: sovrnBidReq
+    }
   },
 
+  /**
+   * Unpack the response from the server into a list of bids.
+   *
+   * @param {*} sovrnResponse A successful response from Sovrn.
+   * @return {Bid[]} An array of bids which were nested inside the server.
+  */
+  // const bidResponse = {
+  //     requestId: bidRequest.bidId, // bidObj.placementCode
+  //     bidderCode: spec.code,       // BIDDER_CODE
+  //     cpm: CPM,                    // parseFloat(sovrnBid.price);
+  //     width: WIDTH,                // parseInt(sovrnBid.w);
+  //     height: HEIGHT,              // parseInt(sovrnBid.h);
+  //     creativeId: CREATIVE_ID,     // sovrnBid.id;
+  //     dealId: DEAL_ID,             // sovrnBid.dealid
+  //     currency: CURRENCY,          // "USD"
+  //     netRevenue: true,            // true
+  //     ttl: TIME_TO_LIVE,           // 60?
+  //     referrer: REFERER,           //
+  //     ad: CREATIVE_BODY            // decodeURIComponent(responseAd + responseNurl)
+  // };
   interpretResponse: function(sovrnResponse) {
-      let impidsWithBidBack = [];
-      if (sovrnResponse && sovrnResponse.id && sovrnResponse.seatbid && sovrnResponse.seatbid.length !== 0 &&
-        sovrnResponse.seatbid[0].bid && sovrnResponse.seatbid[0].bid.length !== 0) {
-        sovrnResponse.seatbid[0].bid.forEach(function(sovrnBid) {
-            let responseCPM;
-            let placementCode = '';
+    // Array to push the sovrn bids to
+    let sovrnBidResponses = [];
 
-            let id = sovrnBid.impid;
-            let bid = {};
-            let bidObj = utils.getBidRequest(id);
-            if (bidObj) {
+    // Not sure which of these are still necessary
+    // since it is only passed successful responses
+    if (sovrnResponse && sovrnResponse.id && sovrnResponse.seatbid && sovrnResponse.seatbid.length !== 0 &&
+      sovrnResponse.seatbid[0].bid && sovrnResponse.seatbid[0].bid.length !== 0) {
+      sovrnResponse.seatbid[0].bid.forEach(sovrnBid => {
 
-              // not sure if this is necessary
-              placementCode = bidObj.placementCode;
+        let bidObj = utils.getBidRequest(sovrnBid.impid);
 
-              // This doesn't seem necessary
-              bidObj.status = CONSTANTS.STATUS.GOOD;
+        if (bidObj && sovrnBid.price && sovrnBid.price !== 0) {
+          let responseNurl = `<img src=${sovrnBid.nurl}>`;
+          let responseAd = sovrnBid.adm;
 
-              responseCPM = parseFloat(sovrnBid.price);
-              if (responseCPM !== 0) {
-                sovrnBid.placementCode = placementCode;
-                sovrnBid.size = bidObj.sizes;
-                let responseAd = sovrnBid.adm;
-
-                // just switched to inline JS
-                let responseNurl = `<img src=${sovrnBid.nurl}>`;
-
-                // should be bidFactory.createBid(bidObj.status, bidObj);
-                // the spec adapter utilizes a fxn called 'newBid'
-                bid = bidFactory.createBid(1, bidObj);
-                bid.creative_id = sovrnBid.id;
-
-                // I don't think we actually need this at all
-                // since it is passed into spec.code
-                // bid.bidderCode = 'sovrn';
-                // bid.bidderCode = BIDDER_CODE;
-
-                bid.cpm = responseCPM;
-                bid.ad = decodeURIComponent(responseAd + responseNurl);
-                bid.width = parseInt(sovrnBid.w);
-                bid.height = parseInt(sovrnBid.h);
-                if (sovrnBid.dealid) {
-                  bid.dealId = sovrnBid.dealid;
-                }
-
-                // This seems necessary based on appnexusAst
-                bid.mediaType = 'banner';
-
-                // This does not seem to be in appnexusAst
-                bidmanager.addBidResponse(placementCode, bid);
-
-                impidsWithBidBack.push(id);
-              }
-            }
+          const bidResponse = {
+            requestId: bidObj.placementCode,
+            bidderCode: spec.code,
+            cpm: parseFloat(sovrnBid.price),
+            width: parseInt(sovrnBid.w),
+            height: parseInt(sovrnBid.h),
+            creativeId: sovrnBid.id,
+            dealId: sovrnBid.dealid || null,
+            currency: "USD",
+            netRevenue: true,
+            // ttl: 60,
+            // referrer: utils.getTopWindowUrl(),
+            // ad: decodeURIComponent(responseAd + responseNurl)
+            ad: decodeURIComponent(`${sovrnBid.adm}<img src=${sovrnBid.nurl}>`)
           }
+          sovrnBidResponses.push(bidResponse);
+        }
       }
-      return impidsWithBidBack;
-    },
+    }
+    return sovrnBidResponses;
+  }
 };
 
 registerBidder(spec);
