@@ -141,10 +141,65 @@ export const spec = {
 
   },
 
-  interpretResponse: function(serverResponse) {
+  interpretResponse: function(sovrnResponse) {
+      let impidsWithBidBack = [];
+      if (sovrnResponse && sovrnResponse.id && sovrnResponse.seatbid && sovrnResponse.seatbid.length !== 0 &&
+        sovrnResponse.seatbid[0].bid && sovrnResponse.seatbid[0].bid.length !== 0) {
+        sovrnResponse.seatbid[0].bid.forEach(function(sovrnBid) {
+            let responseCPM;
+            let placementCode = '';
 
-  },
+            let id = sovrnBid.impid;
+            let bid = {};
+            let bidObj = utils.getBidRequest(id);
+            if (bidObj) {
 
+              // not sure if this is necessary
+              placementCode = bidObj.placementCode;
+
+              // This doesn't seem necessary
+              bidObj.status = CONSTANTS.STATUS.GOOD;
+
+              responseCPM = parseFloat(sovrnBid.price);
+              if (responseCPM !== 0) {
+                sovrnBid.placementCode = placementCode;
+                sovrnBid.size = bidObj.sizes;
+                let responseAd = sovrnBid.adm;
+
+                // just switched to inline JS
+                let responseNurl = `<img src=${sovrnBid.nurl}>`;
+
+                // should be bidFactory.createBid(bidObj.status, bidObj);
+                // the spec adapter utilizes a fxn called 'newBid'
+                bid = bidFactory.createBid(1, bidObj);
+                bid.creative_id = sovrnBid.id;
+
+                // I don't think we actually need this at all
+                // since it is passed into spec.code
+                // bid.bidderCode = 'sovrn';
+                // bid.bidderCode = BIDDER_CODE;
+
+                bid.cpm = responseCPM;
+                bid.ad = decodeURIComponent(responseAd + responseNurl);
+                bid.width = parseInt(sovrnBid.w);
+                bid.height = parseInt(sovrnBid.h);
+                if (sovrnBid.dealid) {
+                  bid.dealId = sovrnBid.dealid;
+                }
+
+                // This seems necessary based on appnexusAst
+                bid.mediaType = 'banner';
+
+                // This does not seem to be in appnexusAst
+                bidmanager.addBidResponse(placementCode, bid);
+
+                impidsWithBidBack.push(id);
+              }
+            }
+          }
+      }
+      return impidsWithBidBack;
+    },
 };
 
 registerBidder(spec);
