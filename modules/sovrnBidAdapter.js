@@ -184,8 +184,6 @@ export const spec = {
         let bidObj = utils.getBidRequest(sovrnBid.impid);
 
         if (bidObj && sovrnBid.price && sovrnBid.price !== 0) {
-          let responseNurl = `<img src=${sovrnBid.nurl}>`;
-          let responseAd = sovrnBid.adm;
 
           const bidResponse = {
             requestId: bidObj.placementCode,
@@ -204,7 +202,7 @@ export const spec = {
           }
           sovrnBidResponses.push(bidResponse);
         }
-      }
+      })
     }
     return sovrnBidResponses;
   }
