@@ -8,54 +8,7 @@ var adaptermanager = require('src/adaptermanager');
 
 
 var SovrnAdapter = function SovrnAdapter() {
-  var sovrnUrl = 'ap.lijit.com/rtb/bid';
-  function _callBids(params) {
-    var sovrnBids = params.bids || [];
-    _requestBids(sovrnBids);
-  }
-  function _requestBids(bidReqs) {
-    var domain = window.location.host;
-    var page = window.location.pathname + location.search + location.hash;
-    var sovrnImps = [];
-    utils._each(bidReqs, function (bid) {
-      var tagId = utils.getBidIdParameter('tagid', bid.params);
-      var bidFloor = utils.getBidIdParameter('bidfloor', bid.params);
-      var adW = 0;
-      var adH = 0;
-      var bidSizes = Array.isArray(bid.params.sizes) ? bid.params.sizes : bid.sizes;
-      var sizeArrayLength = bidSizes.length;
-      if (sizeArrayLength === 2 && typeof bidSizes[0] === 'number' && typeof bidSizes[1] === 'number') {
-        adW = bidSizes[0];
-        adH = bidSizes[1];
-      } else {
-        adW = bidSizes[0][0];
-        adH = bidSizes[0][1];
-      }
-      var imp =
-        {
-          id: bid.bidId,
-          banner: {
-            w: adW,
-            h: adH
-          },
-          tagid: tagId,
-          bidfloor: bidFloor
-        };
-      sovrnImps.push(imp);
-    });
-    var sovrnBidReq = {
-      id: utils.getUniqueIdentifierStr(),
-      imp: sovrnImps,
-      site: {
-        domain: domain,
-        page: page
-      }
-    };
-    var scriptUrl = '//' + sovrnUrl + '?callback=window.$$PREBID_GLOBAL$$.sovrnResponse' +
-      '&src=' + CONSTANTS.REPO_AND_VERSION +
-      '&br=' + encodeURIComponent(JSON.stringify(sovrnBidReq));
-    adloader.loadScript(scriptUrl);
-  }
+
   function addBlankBidResponses(impidsWithBidBack) {
     var missing = utils.getBidderRequestAllAdUnits('sovrn');
     if (missing) {
@@ -107,12 +60,7 @@ var SovrnAdapter = function SovrnAdapter() {
     }
     addBlankBidResponses(impidsWithBidBack);
   };
-  return {
-    callBids: _callBids
-  };
 };
-adaptermanager.registerBidAdapter(new SovrnAdapter(), 'sovrn');
-module.exports = SovrnAdapter;
 */
 
 /**
@@ -143,12 +91,45 @@ export const spec = {
    * @param {BidRequest[]} bidRequests A non-empty list of bid requests which should be sent to the Server.
    * @return ServerRequest Info describing the request to the server.
    */
-  buildRequests: function(bidRequests) {
+  buildRequests: function(bidReqs) {
+    const domain = window.location.host;
+    const page = window.location.pathname + location.search + location.hash;
+    let sovrnImps = [];
+    utils._each(bidReqs, function (bid) {
+      const tagId = utils.getBidIdParameter('tagid', bid.params);
+      const bidFloor = utils.getBidIdParameter('bidfloor', bid.params);
+
+      // BANNER OBJECT NOT USED.
+      // THE WIDTH & HEIGHT ARE OVERRIDDEN BY THE WIDTH AND HEIGHT OF THE TAG.
+      var imp =
+        {
+          id: bid.bidId,
+          banner: {
+            w: 1,
+            h: 1,
+          },
+          tagid: tagId,
+          bidfloor: bidFloor
+        };
+      sovrnImps.push(imp);
+    });
+
+    var sovrnBidReq = {
+      id: utils.getUniqueIdentifierStr(),
+      imp: sovrnImps,
+      site: {
+        domain: domain,
+        page: page
+      }
+    };
+
+    const payloadString = JSON.stringify(sovrnBidReq);
     return {
-      method: 'POST'
+      method: 'POST',
       url: URL,
-      data: sovrnBidReq
-    }
+      data: payloadString,
+    };
+
   },
 
   /**
@@ -199,7 +180,7 @@ export const spec = {
             // referrer: utils.getTopWindowUrl(),
             // ad: decodeURIComponent(responseAd + responseNurl)
             ad: decodeURIComponent(`${sovrnBid.adm}<img src=${sovrnBid.nurl}>`)
-          }
+          };
           sovrnBidResponses.push(bidResponse);
         }
       })
