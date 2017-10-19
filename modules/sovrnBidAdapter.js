@@ -58,10 +58,9 @@ export const spec = {
   */
   interpretResponse: function(sovrnResponse) {
     let sovrnBidResponses = [];
-
     if (sovrnResponse.id && sovrnResponse.seatbid && sovrnResponse.seatbid.length !== 0 &&
       sovrnResponse.seatbid[0].bid && sovrnResponse.seatbid[0].bid.length !== 0) {
-      sovrnResponse.seatbid[0].bid.forEach(sovrnBid => {
+      sovrnResponse.seatbid[0].bid.map(sovrnBid => {
         sovrnBidResponses.push({
           requestId: sovrnBid.impid,
           bidderCode: spec.code,
@@ -78,7 +77,6 @@ export const spec = {
         });
       });
     }
-
     return sovrnBidResponses;
   }
 };
