@@ -33,7 +33,6 @@ describe('sovrnBidAdapter', function() {
 
     it('should return false when tagid not passed correctly', () => {
       bid.params.tagid = 'ABCD';
-
       expect(spec.isBidRequestValid(bid)).to.equal(false);
     });
 
@@ -95,6 +94,28 @@ describe('sovrnBidAdapter', function() {
         'height': 90,
         'creativeId': 'a_403370_332fdb9b064040ddbec05891bd13ab28',
         'dealId': null,
+        'currency': 'USD',
+        'netRevenue': true,
+        'mediaType': 'banner',
+        'ad': decodeURIComponent(`<!-- Creative --><img src=<!-- NURL -->>`),
+        'ttl': 60000
+      }];
+
+      let result = spec.interpretResponse(response);
+      expect(Object.keys(result[0])).to.deep.equal(Object.keys(expectedResponse[0]));
+    });
+
+    it('should get correct bid response when dealId is passed', () => {
+      response.dealId = 'baking';
+
+      let expectedResponse = [{
+        'requestId': '263c448586f5a1',
+        'bidderCode': 'sovrn',
+        'cpm': 0.45882675,
+        'width': 728,
+        'height': 90,
+        'creativeId': 'a_403370_332fdb9b064040ddbec05891bd13ab28',
+        'dealId': 'baking',
         'currency': 'USD',
         'netRevenue': true,
         'mediaType': 'banner',
