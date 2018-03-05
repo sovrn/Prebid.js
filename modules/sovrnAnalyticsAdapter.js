@@ -21,6 +21,8 @@ import adaptermanager from 'src/adaptermanager';
 let defaultUrl = document.location.protocol + '//ap.lijit.com/headerlog';
 const analyticsType = 'endpoint';
 let eventStack = {scriptId: '', events: []};
+let timeout;
+let eventCollectionByDivId = {};
 
 let sovrnAnalytics = Object.assign(adapter(
   {
@@ -54,61 +56,51 @@ function sendEvent(eventType, data) {
 }
 
 function sendLogs() {
-  // TODO: maybe combine the following two function
-  // both could loop through event stack
-  let timeOut = getTimeOutFromEventStack();
-  let eventCollectionByDivId = createEventCollectionByDivId();
-  Object.keys(eventCollectionByDivId).forEach(function(key) {
-    console.log(key, eventCollectionByDivId[key]);
-    eventCollectionByDivId[key].forEach(function (event) {
-      if (event.eventType == CONSTANTS.BID_RESPONSE) {
+  organizeEventCollectionInfo();
+  // Object.keys(eventCollectionByDivId).forEach(function(key) {
+  //   console.log(key, eventCollectionByDivId[key]);
+  //   eventCollectionByDivId[key].forEach(function (event) {
+  //     if (event.eventType == CONSTANTS.BID_RESPONSE) {
+  //
+  //     }
+  //   });
+  // });
+}
 
-      }
+function organizeEventCollectionInfo() {
+  eventStack.events.forEach(function(element) {
+    if (element.eventType == CONSTANTS.EVENTS.AUCTION_INIT) {
+      getOverallTimeout(element);
+    } else if (element.eventType == CONSTANTS.EVENTS.BID_REQUESTED) {
+      addBidRequestedEventToCollection(element);
+    } else if (element.args) {
+      addEventToCollection(element, element.args.adUnitCode);
+    }
+  });
+}
+
+function getOverallTimeout(auctionInitEvent) {
+  if (auctionInitEvent.args && auctionInitEvent.args.timeout) {
+    timeout = auctionInitEvent.args.timeout;
+  }
+}
+
+function addBidRequestedEventToCollection(bidRequestedEvent) {
+  if (bidRequestedEvent.args && bidRequestedEvent.args.bids &&
+    bidRequestedEvent.args.bids.length) {
+    bidRequestedEvent.args.bids.forEach(function(bid) {
+      addEventToCollection(bidRequestedEvent, bid.adUnitCode);
     });
-  });
+  }
 }
 
-function getTimeOutFromEventStack() {
-  eventStack.events.forEach(function(element) {
-    if (element.eventType == CONSTANTS.AUCTION_INIT) {
-      if (element.args && element.args.timeout) {
-        return element.args.timeout;
-      }
+function addEventToCollection(event, adUnitCode) {
+  if (adUnitCode) {
+    if (!eventCollectionByDivId[adUnitCode]) {
+      eventCollectionByDivId[adUnitCode] = [];
     }
-  });
-}
-
-//
-// function getTimeToRespond(bidResponseEvent) {
-//   if (bidResponseEvent && bidResponseEvent.args && bidResponseEvent.args.time)
-// }
-
-function createEventCollectionByDivId() {
-  let eventCollectionByDivId = {};
-  console.log(eventStack);
-  eventStack.events.forEach(function(element) {
-    if (element.args && element.args.adUnitCode) {
-      if (!eventCollectionByDivId[element.args.adUnitCode]) {
-        eventCollectionByDivId[element.args.adUnitCode] = [];
-      }
-      eventCollectionByDivId[element.args.adUnitCode].push(element);
-    } else {
-      // The bid_requested event can contain multiple div_ids
-      // It contains all bids requested for a partner
-      if (element.eventType == CONSTANTS.EVENTS.BID_REQUESTED &&
-      element.args && element.args.bids && element.args.bids.length) {
-        element.args.bids.forEach(function(bid) {
-          if (bid.adUnitCode) {
-            if (!eventCollectionByDivId[bid.adUnitCode]) {
-              eventCollectionByDivId[bid.adUnitCode] = [];
-            }
-            eventCollectionByDivId[bid.adUnitCode].push(element);
-          }
-        })
-      }
-    }
-  });
-  return eventCollectionByDivId
+    eventCollectionByDivId[adUnitCode].push(event);
+  }
 }
 
 // function createBasicJsonLog(adUnitCode) {
