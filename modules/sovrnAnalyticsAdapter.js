@@ -1,7 +1,6 @@
 // var events = require('src/events');
 import CONSTANTS from 'src/constants.json';
 import adapter from 'src/AnalyticsAdapter';
-// const utils = require('src/utils');
 import adaptermanager from 'src/adaptermanager';
 
 /****
@@ -24,6 +23,15 @@ let eventStack = {scriptId: '', events: []};
 let timeout = 0;
 let longestResponseTimes = {};
 let eventCollectionByDivId = {};
+const resultCodes = {
+  lose: 'L',
+  didNotBid: 'D',
+  win: 'W',
+  loserOverride: 'LO',
+  winnerOverride: 'WO',
+  timeOut: 'T',
+  missingBid: 'M',
+};
 
 let sovrnAnalytics = Object.assign(adapter(
   {
@@ -59,14 +67,19 @@ function sendEvent(eventType, data) {
 function sendLogs() {
   organizeEventCollectionInfo();
   Object.keys(eventCollectionByDivId).forEach(function(key) {
-    console.log(key, eventCollectionByDivId[key]);
     let jsonToSendToHeaderLog = createBasicJsonLog(key);
-    console.log(jsonToSendToHeaderLog);
-    // eventCollectionByDivId[key].forEach(function (event) {
-    //   if (event.eventType == CONSTANTS.BID_RESPONSE) {
-    //
-    //   }
-    // });
+    eventCollectionByDivId[key].forEach(function (event) {
+      if (event.eventType == CONSTANTS.EVENTS.BID_REQUESTED) {
+        let formattedBidderRequestArr = createBidderObjectFromBidRequestEvent(event);
+        console.log(formattedBidderRequestArr);
+        formattedBidderRequestArr.forEach(function (bidReq) {
+          jsonToSendToHeaderLog.b.push(bidReq);
+        });
+        // if (!utils.isEmpty(formattedBidderResponseObject)) {
+        //   jsonToSendToHeaderLog.b.push(formattedBidderResponseObject);
+        // }
+      }
+    });
   });
 }
 
@@ -88,6 +101,7 @@ function organizeEventCollectionInfo() {
 function getOverallTimeout(auctionInitEvent) {
   if (auctionInitEvent.args && auctionInitEvent.args.timeout) {
     timeout = auctionInitEvent.args.timeout;
+    console.log(timeout);
   }
 }
 
@@ -128,7 +142,7 @@ w: width - The width from the winning bid response.
 trid: one of the Transaction IDs from sovrn bid response if provided (regardless of winner)
 pid: IGNORE
 t: elapsed Time for auction (across all bidders)
-b: bidder information
+b: bidder response array
 sid: the Sovrn configuration ID
 */
 function createBasicJsonLog(adUnitCode) {
@@ -146,6 +160,57 @@ function createBasicJsonLog(adUnitCode) {
     sid: eventStack.scriptId,
   };
 }
+
+/*
+id: bidder id (e.g.: sovrn, pubmatic, rubicon, etc)
+p: bidder params
+st: start timestamp
+br: bid response object
+  cpm: cpm
+  rc: Result code
+    L - lose
+    W - win
+    D - did not bid
+    LO - loser override (prebid win beaten by ad server)
+    T - time out
+  ec: IGNORE
+  et: end timestamp
+  tbt: time to respond
+  pb: price bucket increments (e.g.: high, medium)
+  sm: status message
+*/
+function createBidderObjectFromBidRequestEvent(event) {
+  let bidderObject = [];
+  if (event.args && event.args.bids) {
+    event.args.bids.forEach(function (bid) {
+      let bidObj = {};
+      bidObj.id = bid.bidder;
+      bidObj.p = bid.params;
+      bidObj.br = {};
+      bidObj.br.cpm = 0;
+      bidObj.br.rc = resultCodes.didNotBid;
+      bidObj.br.ec = 29;
+      // Not sure where to get price bucket from
+      // bidObj.br.pb = ?
+      bidderObject.push(bidObj);
+    });
+  }
+  return bidderObject;
+}
+// function createBidderObjectFromBidResponseEvent(event) {
+//   let bidderResponseObject = {};
+//   if(event.args) {
+//     bidderResponseObject.id = (event.args.bidderCode) ? event.args.bidderCode : event.args.bidder;
+//     // DONT HAVE P WITHOUT BID_REQUEST event. AARRRGGGGHHH
+//     bidderResponseObject.st = event.args.requestTimestamp;
+//     bidderResponseObject.et = event.args.responseTimestamp;
+//     bidderResponseObject.br = {};
+//     bidderResponseObject.br.cpm = event.args.cpm;
+//     // Either LO or L
+//     bidderResponseObject.rc
+//   }
+//   return bidderResponseObject;
+// }
 
 sovrnAnalytics.adapterEnableAnalytics = sovrnAnalytics.enableAnalytics;
 
