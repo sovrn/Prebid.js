@@ -1,0 +1,20 @@
+pipelines: 
+  sovrn.prebid: 
+    materials: 
+      default_repo: 
+        branch: legacy
+        git: "git@github.com:sovrn/Prebid.js.git"
+    stages: 
+      - build: 
+          clean_workspace: no
+          fetch_materials: yes
+          jobs: 
+            create.artifact:
+              resources: 
+                - node 
+              tasks: 
+                - script: |
+                    set -x on
+                    ./transform.sh
+                      && npm install
+                      && npm publish
