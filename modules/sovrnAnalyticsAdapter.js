@@ -22,7 +22,10 @@ const analyticsType = 'endpoint';
 let eventStack = {scriptId: '', events: []};
 let timeout = 0;
 let longestResponseTimes = {};
+let highestCpms = {};
 let eventCollectionByDivId = {};
+let jsonsToSendToHeaderLog = {};
+let winExists = false;
 const resultCodes = {
   lose: 'L',
   didNotBid: 'D',
@@ -65,25 +68,22 @@ function sendEvent(eventType, data) {
 }
 
 function sendLogs() {
-  organizeEventCollectionInfo();
+  organizeEventCollectionByDivId();
   Object.keys(eventCollectionByDivId).forEach(function(key) {
-    let jsonToSendToHeaderLog = createBasicJsonLog(key);
-    eventCollectionByDivId[key].forEach(function (event) {
-      if (event.eventType == CONSTANTS.EVENTS.BID_REQUESTED) {
-        let formattedBidderRequestArr = createBidderObjectFromBidRequestEvent(event);
-        console.log(formattedBidderRequestArr);
-        formattedBidderRequestArr.forEach(function (bidReq) {
-          jsonToSendToHeaderLog.b.push(bidReq);
-        });
-        // if (!utils.isEmpty(formattedBidderResponseObject)) {
-        //   jsonToSendToHeaderLog.b.push(formattedBidderResponseObject);
-        // }
-      }
-    });
+    if (!jsonsToSendToHeaderLog[key]) {
+      jsonsToSendToHeaderLog[key] = createBasicJsonLog(key);
+      eventCollectionByDivId[key].forEach(function(event) {
+        addBidsRequestedDataToJson(key, event);
+      });
+      eventCollectionByDivId[key].forEach(function(event) {
+        addBidResponseDataToJson(key, event);
+      });
+    }
   });
+//  console.log(jsonsToSendToHeaderLog);
 }
 
-function organizeEventCollectionInfo() {
+function organizeEventCollectionByDivId() {
   eventStack.events.forEach(function(element) {
     if (element.eventType == CONSTANTS.EVENTS.AUCTION_INIT) {
       getOverallTimeout(element);
@@ -92,16 +92,36 @@ function organizeEventCollectionInfo() {
     } else if (element.args) {
       if (element.eventType == CONSTANTS.EVENTS.BID_RESPONSE) {
         setTimeToRespond(element, element.args.adUnitCode);
+        setHighestCpm(element);
       }
-      addEventToCollection(element, element.args.adUnitCode);
+      addEventToCollection(element.args.adUnitCode, element);
+    } else if (element.eventType == CONSTANTS.EVENTS.BID_WON) {
+      winExists = true;
+      console.log('win exists', winExists);
     }
   });
+}
+
+function addBidsRequestedDataToJson(divIdKey, event) {
+  if (event && (event.eventType == CONSTANTS.EVENTS.BID_REQUESTED)) {
+    let formattedBidderRequestArr = createBidderObjectFromBidRequestEvent(divIdKey, event);
+    formattedBidderRequestArr.forEach(function (bidReq) {
+      jsonsToSendToHeaderLog[divIdKey].b.push(bidReq);
+    });
+  };
+}
+
+function addBidResponseDataToJson(divIdKey, event) {
+  if (event && (event.eventType == CONSTANTS.EVENTS.BID_RESPONSE)) {
+    jsonsToSendToHeaderLog[divIdKey].b.forEach(function (bid) {
+      console.log(bid);
+    })
+  };
 }
 
 function getOverallTimeout(auctionInitEvent) {
   if (auctionInitEvent.args && auctionInitEvent.args.timeout) {
     timeout = auctionInitEvent.args.timeout;
-    console.log(timeout);
   }
 }
 
@@ -109,13 +129,13 @@ function addBidRequestedEventToCollection(bidRequestedEvent) {
   if (bidRequestedEvent.args && bidRequestedEvent.args.bids &&
     bidRequestedEvent.args.bids.length) {
     bidRequestedEvent.args.bids.forEach(function(bid) {
-      addEventToCollection(bidRequestedEvent, bid.adUnitCode);
+      addEventToCollection(bid.adUnitCode, bidRequestedEvent);
     });
   }
 }
 
 function setTimeToRespond(bidResponseEvent, adUnitCode) {
-  if (bidResponseEvent.args.timeToRespond && adUnitCode) {
+  if (bidResponseEvent && bidResponseEvent.args && bidResponseEvent.args.timeToRespond && adUnitCode) {
     if (!longestResponseTimes[adUnitCode]) {
       longestResponseTimes[adUnitCode] = bidResponseEvent.args.timeToRespond
     } else if (bidResponseEvent.args.timeToRespond > longestResponseTimes[adUnitCode]) {
@@ -124,7 +144,18 @@ function setTimeToRespond(bidResponseEvent, adUnitCode) {
   }
 }
 
-function addEventToCollection(event, adUnitCode) {
+function setHighestCpm(bidResponseEvent) {
+  if (bidResponseEvent && bidResponseEvent.args && bidResponseEvent.args.cpm && bidResponseEvent.args.adUnitCode) {
+    let key = bidResponseEvent.args.adUnitCode;
+    if (!highestCpms[key]) {
+      highestCpms[key] = bidResponseEvent.args.cpm;
+    } else if (bidResponseEvent.args.cpm > highestCpms[key]) {
+      highestCpms[key] = bidResponseEvent.args.cpm;
+    }
+  }
+}
+
+function addEventToCollection(adUnitCode, event) {
   if (adUnitCode) {
     if (!eventCollectionByDivId[adUnitCode]) {
       eventCollectionByDivId[adUnitCode] = [];
@@ -179,10 +210,13 @@ br: bid response object
   pb: price bucket increments (e.g.: high, medium)
   sm: status message
 */
-function createBidderObjectFromBidRequestEvent(event) {
+function createBidderObjectFromBidRequestEvent(key, event) {
+  if (!event || !event.args || !event.args.bids) {
+    return;
+  }
   let bidderObject = [];
-  if (event.args && event.args.bids) {
-    event.args.bids.forEach(function (bid) {
+  event.args.bids.forEach(function (bid) {
+    if (bid.adUnitCode == key) {
       let bidObj = {};
       bidObj.id = bid.bidder;
       bidObj.p = bid.params;
@@ -190,11 +224,12 @@ function createBidderObjectFromBidRequestEvent(event) {
       bidObj.br.cpm = 0;
       bidObj.br.rc = resultCodes.didNotBid;
       bidObj.br.ec = 29;
+      bidObj.bidId = bid.bidId;
       // Not sure where to get price bucket from
       // bidObj.br.pb = ?
       bidderObject.push(bidObj);
-    });
-  }
+    }
+  });
   return bidderObject;
 }
 // function createBidderObjectFromBidResponseEvent(event) {
