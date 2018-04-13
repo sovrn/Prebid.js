@@ -112,6 +112,7 @@ describe('sovrnBidAdapter', function() {
         'seatbid': [{
           'bid': [{
             'id': 'a_403370_332fdb9b064040ddbec05891bd13ab28',
+            'crid': 'creativelycreatedcreativecreative',
             'impid': '263c448586f5a1',
             'price': 0.45882675,
             'nurl': '<!-- NURL -->',
@@ -129,7 +130,7 @@ describe('sovrnBidAdapter', function() {
         'cpm': 0.45882675,
         'width': 728,
         'height': 90,
-        'creativeId': 'a_403370_332fdb9b064040ddbec05891bd13ab28',
+        'creativeId': 'creativelycreatedcreativecreative',
         'dealId': null,
         'currency': 'USD',
         'netRevenue': true,
@@ -150,7 +151,7 @@ describe('sovrnBidAdapter', function() {
         'cpm': 0.45882675,
         'width': 728,
         'height': 90,
-        'creativeId': 'a_403370_332fdb9b064040ddbec05891bd13ab28',
+        'creativeId': 'creativelycreatedcreativecreative',
         'dealId': 'baking',
         'currency': 'USD',
         'netRevenue': true,
