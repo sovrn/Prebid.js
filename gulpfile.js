@@ -72,16 +72,16 @@ function nodeBundle(modules) {
 }
 
 // these modules must be explicitly listed in --modules to be included in the build, won't be part of "all" modules
-var explicitModules = [
-  'pre1api'
-];
+// var explicitModules = [
+  // 'pre1api'
+// ];
 
 function bundle(dev, moduleArr) {
   var modules = moduleArr || helpers.getArgModules(),
       allModules = helpers.getModuleNames(modules);
 
   if(modules.length === 0) {
-    modules = allModules.filter(module => !explicitModules.includes(module));
+    modules = allModules;
   } else {
     var diff = _.difference(modules, allModules);
     if(diff.length !== 0) {
