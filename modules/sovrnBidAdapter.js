@@ -4,7 +4,7 @@ import { BANNER } from 'src/mediaTypes';
 import { REPO_AND_VERSION } from 'src/constants';
 
 export const spec = {
-  code: 'sovrn',
+  code: 'sovrnOld',
   supportedMediaTypes: [BANNER],
 
   /**

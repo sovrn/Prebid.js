@@ -154,6 +154,6 @@ var SovrnAdapter = function SovrnAdapter() {
   };
 };
 
-adaptermanager.registerBidAdapter(new SovrnAdapter(), 'sovrnOld');
+adaptermanager.registerBidAdapter(new SovrnAdapter(), 'sovrn');
 
 module.exports = SovrnAdapter;
