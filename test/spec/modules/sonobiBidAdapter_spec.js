@@ -165,7 +165,6 @@ describe('Sonobi adapter tests', () => {
       }
     }]
   };
-  //  You guys surprise me all the time new and exciting ways to break this simple adapter.
   const adUnit_m1hb = {
     bidderCode: 'sonobi',
     bids: [{
@@ -287,8 +286,24 @@ describe('Sonobi adapter tests', () => {
 
       it('should attempt to call bidder for: ' + adUnitName, () => {
         adapter.callBids(adUnit);
+        let hasVpParam = false;
+        let trinityRequest = stubLoadScript.args[0][0];
+        if (trinityRequest.indexOf('vp=mobile') > -1) {
+          hasVpParam = true;
+        }
+        if (trinityRequest.indexOf('vp=tablet') > -1) {
+          hasVpParam = true;
+        }
+        if (trinityRequest.indexOf('vp=desktop') > -1) {
+          hasVpParam = true;
+        }
+        expect(hasVpParam).to.equal(true);
         expect(stubLoadScript.callCount).to.equal(1);
         expect(stubFailBid.callCount).to.equal(0);
+      });
+      it('should return null if an empty bid request object is formed', () => {
+        let emptyKeymaker = adapter.callBids({bids: [], bidderRequestId: 'someId'});
+        expect(emptyKeymaker).to.equal(null);
       });
     });
   });
@@ -306,6 +321,7 @@ describe('Sonobi adapter tests', () => {
         {
           'sbi_size': '300x250',
           'sbi_apoc': 'premium',
+          'sbi_crid': 'abcd1234',
           'sbi_aid': '159.60.7533347',
           'sbi_mouse': 4.20
         }
@@ -322,6 +338,7 @@ describe('Sonobi adapter tests', () => {
           'sbi_apoc': 'premium',
           'sbi_aid': '159.60.7533347',
           'sbi_mouse': 4.20,
+          'sbi_ct': 'video'
         }
       },
       'sbi_dc': 'mco-1-'
@@ -371,6 +388,7 @@ describe('Sonobi adapter tests', () => {
     it('should create bid object for outstream video bid return', () => {
       adapter.parseResponse(sbi_video_bid);
       expect(spyAddBidResponse.called).to.be.true;
+      expect(spyAddBidResponse.args[0][1].vastUrl).to.be.ok;
       expect(stubFailBid.callCount).to.equal(0);
     });
 
@@ -386,4 +404,38 @@ describe('Sonobi adapter tests', () => {
       expect(stubGoodBid.callCount).to.equal(0);
     });
   });
+
+  describe('_getPlatform', () => {
+    it('should return mobile', () => {
+      const adapter = new Adapter();
+      expect(adapter._getPlatform({innerWidth: 767})).to.equal('mobile')
+    })
+    it('should return tablet', () => {
+      const adapter = new Adapter();
+      expect(adapter._getPlatform({innerWidth: 800})).to.equal('tablet')
+    })
+    it('should return desktop', () => {
+      const adapter = new Adapter();
+      expect(adapter._getPlatform({innerWidth: 1000})).to.equal('desktop')
+    })
+  })
+  describe('_getReferrer', () => {
+    it('should return the referrer from the adunit params', () => {
+      const adapter = new Adapter();
+      const adunit = {
+        bidderCode: 'sonobi',
+        bids: [{
+          bidId: 'testbid',
+          bidder: 'sonobi',
+          placementCode: 'adUnit_p',
+          sizes: [[300, 250], [300, 600]],
+          params: {
+            placement_id: '1a2b3c4d5e6f1a2b3c4d',
+            referrer: 'test'
+          }
+        }]
+      };
+      expect(adapter._getReferrer(adunit.bids)).to.equal('test');
+    })
+  })
 });

@@ -3,6 +3,7 @@ var bidmanager = require('src/bidmanager.js');
 var adloader = require('src/adloader.js');
 var utils = require('src/utils');
 var adaptermanager = require('src/adaptermanager');
+const { BANNER, VIDEO } = require('src/mediaTypes');
 
 var SonobiAdapter = function SonobiAdapter() {
   var keymakerAssoc = {}; //  Remember placement codes for callback mapping
@@ -12,8 +13,15 @@ var SonobiAdapter = function SonobiAdapter() {
     var trinity = 'https://apex.go.sonobi.com/trinity.js?key_maker=';
     var adSlots = request.bids || [];
     var bidderRequestId = request.bidderRequestId;
-    var ref = '&ref=' + encodeURI(utils.getTopWindowLocation().host);
-    adloader.loadScript(trinity + JSON.stringify(_keymaker(adSlots)) + '&cv=' + _operator(bidderRequestId) + ref);
+    var ref = '&ref=' + _getReferrer(adSlots)
+    var libName = '&lib_name=prebid';
+    var libVersion = '&lib_v=$prebid.version$';
+    var vp = '&vp=' + _getPlatform();
+    var key_maker = _keymaker(adSlots);
+    if (utils.isEmpty(key_maker)) {
+      return null;
+    }
+    return adloader.loadScript(trinity + JSON.stringify(key_maker) + '&cv=' + _operator(bidderRequestId) + ref + vp + libVersion + libName);
   }
 
   function _keymaker(adSlots) {
@@ -26,10 +34,6 @@ var SonobiAdapter = function SonobiAdapter() {
         var slotIdentifier = (bidRequest.params.ad_unit) ? bidRequest.params.ad_unit : (bidRequest.params.placement_id) ? bidRequest.params.placement_id : null;
         var sizes = (bidRequest.params.sizes) ? bidRequest.params.sizes : bidRequest.sizes || null;
         sizes = utils.parseSizesInput(sizes).toString();
-
-        if (utils.isEmpty(sizes)) {
-          utils.logError('Sonobi adapter expects sizes for ' + bidRequest.placementCode);
-        }
 
         var bidId = bidRequest.bidId;
 
@@ -81,15 +85,28 @@ var SonobiAdapter = function SonobiAdapter() {
   }
 
   function _success(placementCode, sbi_dc, bid) {
-    var goodBid = bidfactory.createBid(1, _seraph(placementCode));
+    const adunitConfig = _seraph(placementCode);
+    var createCreative = _creative(bid.sbi_ct, _getReferrer([adunitConfig]));
+    var goodBid = bidfactory.createBid(1, adunitConfig);
     if (bid.sbi_dozer) {
       goodBid.dealId = bid.sbi_dozer;
     }
     goodBid.bidderCode = 'sonobi';
-    goodBid.ad = _creative(sbi_dc, bid.sbi_aid);
+    goodBid.ad = createCreative(sbi_dc, bid.sbi_aid);
+    goodBid.creativeId = bid.sbi_crid || bid.sbi_aid;
+
     goodBid.cpm = Number(bid.sbi_mouse);
     goodBid.width = Number(bid.sbi_size.split('x')[0]) || 1;
     goodBid.height = Number(bid.sbi_size.split('x')[1]) || 1;
+    goodBid.aid = bid.sbi_aid;
+    if (bid.sbi_ct === 'video') {
+      goodBid.mediaType = 'video';
+      goodBid.vastUrl = createCreative(sbi_dc, bid.sbi_aid);
+      delete goodBid.ad;
+      delete goodBid.width;
+      delete goodBid.height;
+    }
+
     bidmanager.addBidResponse(placementCode, goodBid);
   }
 
@@ -99,9 +116,56 @@ var SonobiAdapter = function SonobiAdapter() {
     bidmanager.addBidResponse(placementCode, failBid);
   }
 
-  function _creative(sbi_dc, sbi_aid) {
-    var src = 'https://' + sbi_dc + 'apex.go.sonobi.com/sbi.js?aid=' + sbi_aid + '&as=null';
-    return '<script type="text/javascript" src="' + src + '"></script>';
+  function _creative(mediaType, referrer) {
+    return function (sbi_dc, sbi_aid) {
+      if (mediaType === 'video') {
+        return `https://${sbi_dc}apex.go.sonobi.com/vast.xml?vid=${sbi_aid}&ref=${referrer}`;
+      }
+      const src = 'https://' + sbi_dc + 'apex.go.sonobi.com/sbi.js?aid=' + sbi_aid + '&as=null&ref=' + referrer;
+      return '<script type="text/javascript" src="' + src + '"></script>';
+    }
+  }
+
+  /**
+   * @param context - the window to determine the innerWidth from. This is purely for test purposes as it should always be the current window
+   */
+  function _isInBounds(context = window) {
+    return function (lowerBound = 0, upperBound = Number.MAX_SAFE_INTEGER) {
+      return context.innerWidth >= lowerBound && context.innerWidth < upperBound;
+    }
+  }
+
+  /**
+   * @param context - the window to determine the innerWidth from. This is purely for test purposes as it should always be the current window
+   */
+  function _getPlatform(context = window) {
+    var isInBounds = _isInBounds(context);
+    var MOBILE_VIEWPORT = {
+      lt: 768
+    };
+    var TABLET_VIEWPORT = {
+      lt: 992,
+      ge: 768
+    };
+    if (isInBounds(0, MOBILE_VIEWPORT.lt)) {
+      return 'mobile'
+    }
+    if (isInBounds(TABLET_VIEWPORT.ge, TABLET_VIEWPORT.lt)) {
+      return 'tablet'
+    }
+    return 'desktop';
+  }
+
+  function _getReferrer(bids) {
+    let ref = encodeURI(utils.getTopWindowLocation().host);
+    try {
+      if (bids[0].params.referrer) {
+        ref = bids[0].params.referrer
+      }
+    } catch (e) {
+      utils.logError(e)
+    }
+    return ref;
   }
 
   return {
@@ -109,10 +173,14 @@ var SonobiAdapter = function SonobiAdapter() {
     formRequest: _keymaker,
     parseResponse: _trinity,
     success: _success,
-    failure: _failure
+    failure: _failure,
+    // export helper functions for testing purposes
+    _isInBounds: _isInBounds,
+    _getPlatform: _getPlatform,
+    _getReferrer: _getReferrer
   };
 };
 
-adaptermanager.registerBidAdapter(new SonobiAdapter(), 'sonobi');
+adaptermanager.registerBidAdapter(new SonobiAdapter(), 'sonobi', {supportedMediaTypes: [BANNER, VIDEO]});
 
 module.exports = SonobiAdapter;
