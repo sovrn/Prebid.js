@@ -17,11 +17,11 @@ const {
   }
 } = CONSTANTS
 
-const PBA_URL = 'http://pba-collector-adapter.us-east-2.elasticbeanstalk.com/analytics'
+let pbaUrl = 'https://pba.lijit.com/analytics'
 let currentAuctions = {};
 const analyticsType = 'endpoint';
 
-let sovrnAnalyticsAdapter = Object.assign(adapter({url: PBA_URL, analyticsType}), {
+let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}), {
   track({ eventType, args }) {
     if (eventType === BID_WON) {
       new BidWinner(this.affiliateId, args).send();
@@ -62,7 +62,10 @@ sovrnAnalyticsAdapter.enableAnalytics = function (config) {
     utils.logError('Need affiliate Id to log auction results. Please contact a Sovrn representative if you do not know your affiliate Id.')
     return
   }
-  sovrnAnalyticsAdapter.affiliateId = affiliateId
+  sovrnAnalyticsAdapter.affiliateId = affiliateId;
+  if (config.options.pbaUrl) {
+    pbaUrl = config.options.pbaUrl;
+  }
   sovrnAnalyticsAdapter.originEnableAnalytics(config) // call the base class function
 };
 
@@ -94,7 +97,7 @@ class BidWinner {
   send() {
     utils.logInfo(this.body)
     ajax(
-      PBA_URL,
+      pbaUrl,
       null,
       JSON.stringify(this.body),
       {
@@ -204,7 +207,7 @@ class AuctionData {
     })
     maxbid.isAuctionWinner = true
     ajax(
-      PBA_URL,
+      pbaUrl,
       () => { delete currentAuctions[this.auction.auctionId] },
       JSON.stringify(this.auction),
       {
