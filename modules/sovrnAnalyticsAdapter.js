@@ -17,7 +17,7 @@ const {
   }
 } = CONSTANTS
 
-let pbaUrl = 'https://pba.lijit.com/analytics'
+let pbaUrl = 'https://pba.aws.lijit.com/analytics'
 let currentAuctions = {};
 const analyticsType = 'endpoint';
 
