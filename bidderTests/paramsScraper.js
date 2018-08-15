@@ -4,8 +4,8 @@ const readline = require('readline');
 const PATH = 'modules/';
 const CODE_BLOCK_PATTERN = /^\s*```([^`]*)$/;
 const PROMISES = [];
-const FAILED_FILES = []
-var allAdUnits = [];
+const FAILED_FILES = [];
+let allAdUnits = [];
 
 function extract(file) {
   return new Promise((resolve, reject) => {
@@ -13,9 +13,10 @@ function extract(file) {
       input: fs.createReadStream(file)
     });
 
-    var inCodeBlock = false;
-    var foundAdUnits = [];
-    var scriptLines = [];
+    let inCodeBlock = false;
+    let foundAdUnits = [];
+    let scriptLines = [];
+
     lineReader.on('line', line => {
       const match = line.match(CODE_BLOCK_PATTERN);
       if(match) {
@@ -56,5 +57,6 @@ fs.readdirSync(PATH).filter(f => f.endsWith('.md')).forEach(f => {
 Promise.all(PROMISES)
   .then((res) => {
       allAdUnits = allAdUnits.concat(res);
+      console.log(JSON.stringify(allAdUnits, null, 2));
     })
   .catch(err => console.error("ERROR:\n" + err));
