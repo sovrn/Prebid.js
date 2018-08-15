@@ -5,7 +5,8 @@
   "main": "src/prebid.js",
   "scripts": {
     "test": "gulp run-tests",
-    "lint": "gulp lint"
+    "lint": "gulp lint",
+    "bidder-tests": "node bidderTests/paramsScraper.js"
   },
   "repository": {
     "type": "git",
