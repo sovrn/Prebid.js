@@ -1,5 +1,4 @@
 const fs = require('fs');
-const readline = require('readline');
 
 const PATH = 'modules/';
 const CODE_BLOCK_PATTERN = /^\s*```[^`]*$/;
@@ -10,15 +9,13 @@ let allAdUnits = {};
 
 function processFile(file) {
   return new Promise((resolve, reject) => {
-    const lineReader = readline.createInterface({
-      input: fs.createReadStream(file)
-    });
 
     let inCodeBlock = false;
     let foundAdUnits = [];
     let scriptLines = [];
 
-    lineReader.on('line', line => {
+    const lines = fs.readFileSync(file).toString().match(/^.+$/gm);
+    lines.forEach(line => {
       const match = line.match(CODE_BLOCK_PATTERN);
       if(match) {
         inCodeBlock = !inCodeBlock;
@@ -33,16 +30,14 @@ function processFile(file) {
       } else if(inCodeBlock) {
         scriptLines.push(line);
       }
-    }).on('close', () => {
-      if(foundAdUnits.length) {
-        const bidder = file.match(FILE_NAME_PATTERN)[1];
-        resolve({[bidder]: foundAdUnits});
-      } else {
-        reject(file);
-      }
-
-      lineReader.close();
     });
+
+    if(foundAdUnits.length) {
+      const bidder = file.match(FILE_NAME_PATTERN)[1];
+      resolve({[bidder]: foundAdUnits});
+    } else {
+      reject(file);
+    }
   });
 }
 
