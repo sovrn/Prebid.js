@@ -3,7 +3,7 @@ const readline = require('readline');
 
 const PATH = 'modules/';
 const CODE_BLOCK_PATTERN = /^\s*```([^`]*)$/;
-const FILE_NAME_PATTERN = /^modules\/(.*)BidAdapter\.md$/
+const FILE_NAME_PATTERN = /^modules\/(.*)BidAdapter\.md$/;
 const PROMISES = [];
 const FAILED_FILES = [];
 let allAdUnits = {};
@@ -52,7 +52,7 @@ function extractAdUnits(scriptLines) {
     return adUnits; // most of the samples create an array called `adUnits`
   } catch (e) {
     // didn't get valid javascript in the code block
-    // console.error("found non-js code block: " + e + "\n" + script);
+    // console.error("found code block with invalid js: " + e + "\n" + script);
   }
 }
 
@@ -63,6 +63,12 @@ fs.readdirSync(PATH).filter(f => f.endsWith('.md')).forEach(f => {
 Promise.all(PROMISES)
   .then((res) => {
       allAdUnits = Object.assign({}, ...res);
+      console.info("Ad units:");
       console.log(JSON.stringify(allAdUnits, null, 2));
+      console.error("Failed files:");
+      console.error(FAILED_FILES);
     })
-  .catch(err => console.error("ERROR:\n" + err));
+  .catch(err => {
+    console.error("Error:");
+    console.error(err);
+  });
