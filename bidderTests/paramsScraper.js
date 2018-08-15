@@ -3,9 +3,10 @@ const readline = require('readline');
 
 const PATH = 'modules/';
 const CODE_BLOCK_PATTERN = /^\s*```([^`]*)$/;
+const FILE_NAME_PATTERN = /^modules\/(.*)BidAdapter\.md$/
 const PROMISES = [];
 const FAILED_FILES = [];
-let allAdUnits = [];
+let allAdUnits = {};
 
 function extract(file) {
   return new Promise((resolve, reject) => {
@@ -33,7 +34,12 @@ function extract(file) {
         scriptLines.push(line);
       }
     }).on('close', () => {
-      foundAdUnits.length ? resolve(foundAdUnits) : reject(file);
+      if(foundAdUnits.length) {
+        const bidder = file.match(FILE_NAME_PATTERN)[1];
+        resolve({[bidder]: foundAdUnits});
+      } else {
+        reject(file);
+      }
     });
   });
 }
@@ -56,7 +62,7 @@ fs.readdirSync(PATH).filter(f => f.endsWith('.md')).forEach(f => {
 
 Promise.all(PROMISES)
   .then((res) => {
-      allAdUnits = allAdUnits.concat(res);
+      allAdUnits = Object.assign({}, ...res);
       console.log(JSON.stringify(allAdUnits, null, 2));
     })
   .catch(err => console.error("ERROR:\n" + err));
