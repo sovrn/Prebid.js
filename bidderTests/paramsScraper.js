@@ -1,10 +1,13 @@
 const fs = require('fs');
+const { promisify } = require('util');
 
 const PATH = 'modules/';
 
 const EXTENSION_PATTERN = '\\.md$';
 const CODE_BLOCK_PATTERN = /^\s*```[^`]*$/;
 const FILE_NAME_PATTERN = new RegExp(`^${PATH}(.*)BidAdapter${EXTENSION_PATTERN}`);
+
+const readFileAsync = promisify(fs.readFile);
 
 function extractAdUnitsFromScriptBlock(scriptLines) {
   const script = scriptLines.join("\n");
@@ -18,12 +21,12 @@ function extractAdUnitsFromScriptBlock(scriptLines) {
   }
 }
 
-async function extractAdUnitsFromFile(file) {
+async function extractAdUnitsFromFile(filepath) {
   let inCodeBlock = false;
   let foundAdUnits = [];
   let scriptLines = [];
 
-  const lines = fs.readFileSync(file).toString().match(/^.+$/gm);
+  const lines = (await readFileAsync(filepath)).toString().match(/^.+$/gm);
   lines.forEach(line => {
     const match = line.match(CODE_BLOCK_PATTERN);
     if(match) {
@@ -42,10 +45,10 @@ async function extractAdUnitsFromFile(file) {
   });
 
   if(foundAdUnits.length) {
-    const bidder = file.match(FILE_NAME_PATTERN)[1];
+    const bidder = filepath.match(FILE_NAME_PATTERN)[1];
     return { [bidder]: foundAdUnits };
   } else {
-    throw file;
+    throw filepath;
   }
 }
 
