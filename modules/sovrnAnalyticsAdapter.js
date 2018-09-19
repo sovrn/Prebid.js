@@ -19,30 +19,37 @@ const {
 
 let pbaUrl = 'https://pba.aws.lijit.com/analytics'
 let currentAuctions = {};
-const analyticsType = 'endpoint';
+const analyticsType = 'endpoint'
 
 let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}), {
   track({ eventType, args }) {
-    if (eventType === BID_WON) {
-      new BidWinner(this.affiliateId, args).send();
-      return
-    }
-    if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
-      currentAuctions[args.auctionId] = new AuctionData(this.affiliateId, args.auctionId);
-    }
-    switch (eventType) {
-      case BID_REQUESTED:
-        currentAuctions[args.auctionId].bidRequested(args)
-        break
-      case BID_ADJUSTMENT:
-        currentAuctions[args.auctionId].originalBid(args)
-        break
-      case BID_RESPONSE:
-        currentAuctions[args.auctionId].adjustedBid(args)
-        break
-      case AUCTION_END:
-        currentAuctions[args.auctionId].send();
-        break
+    try {
+      if (eventType === BID_WON) {
+        new BidWinner(this.affiliateId, args).send();
+        return
+      }
+      if (args.auctionId && currentAuctions[args.auctionId] === 'complete') {
+        throw new Error('Event Recieved after Auction Close Auction Id ' + args.auctionId)
+      }
+      if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
+        currentAuctions[args.auctionId] = new AuctionData(this.affiliateId, args.auctionId)
+      }
+      switch (eventType) {
+        case BID_REQUESTED:
+          currentAuctions[args.auctionId].bidRequested(args)
+          break
+        case BID_ADJUSTMENT:
+          currentAuctions[args.auctionId].originalBid(args)
+          break
+        case BID_RESPONSE:
+          currentAuctions[args.auctionId].adjustedBid(args)
+          break
+        case AUCTION_END:
+          currentAuctions[args.auctionId].send();
+          break
+      }
+    } catch (e) {
+      new LogError(e, this.affiliateId, {eventType, args}).send()
     }
   },
 })
@@ -95,7 +102,7 @@ class BidWinner {
    * Sends the auction to the the ingest server
    */
   send() {
-    utils.logInfo(this.body)
+    this.body.ts = utils.timestamp()
     ajax(
       pbaUrl,
       null,
@@ -137,9 +144,10 @@ class AuctionData {
    * @param {*} event - the args object from the auction event
    */
   bidRequested(event) {
-    delete event.doneCbCallCount
-    delete event.auctionId
-    this.auction.requests.push(JSON.parse(JSON.stringify(event)))
+    const eventCopy = JSON.parse(JSON.stringify(event))
+    delete eventCopy.doneCbCallCount
+    delete eventCopy.auctionId
+    this.auction.requests.push(eventCopy)
   }
 
   /**
@@ -150,13 +158,13 @@ class AuctionData {
   findBid(event) {
     const bidder = this.auction.requests.find(r => (r.bidderCode === event.bidderCode))
     if (!bidder) {
-      this.auction.unsynced.push(event)
+      this.auction.unsynced.push(JSON.parse(JSON.stringify(event)))
     }
     let bid = bidder.bids.find(b => (b.bidId === event.requestId))
 
     if (!bid) {
       event.unmatched = true
-      bidder.bids.push(event)
+      bidder.bids.push(JSON.parse(JSON.stringify(event)))
     }
     return bid
   }
@@ -206,10 +214,37 @@ class AuctionData {
       })
     })
     maxbid.isAuctionWinner = true
+    this.auction.ts = utils.timestamp()
     ajax(
       pbaUrl,
-      () => { delete currentAuctions[this.auction.auctionId] },
+      () => { currentAuctions[this.auction.auctionId] = 'complete' },
       JSON.stringify(this.auction),
+      {
+        contentType: 'application/json',
+        method: 'POST',
+      }
+    )
+  }
+}
+class LogError {
+  constructor(e, affiliateId, data) {
+    this.error = {}
+    this.error.ts = utils.timestamp()
+    this.error.payload = 'error'
+    this.error.message = e.message
+    this.error.data = data
+    this.error.stack = e.stack
+    this.error.prebidVersion = $$PREBID_GLOBAL$$.version
+    this.error.affiliateId = affiliateId
+    this.error.url = utils.getTopWindowLocation().href
+    this.error.auctionData = currentAuctions
+  }
+  send() {
+    this.body.ts = utils.timestamp()
+    ajax(
+      pbaUrl,
+      null,
+      JSON.stringify(this.error),
       {
         contentType: 'application/json',
         method: 'POST',
