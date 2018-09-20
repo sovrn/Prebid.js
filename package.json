@@ -1,6 +1,6 @@
 {
-  "name": "prebid.js",
-  "version": "1.24.1",
+  "name": "sovrn-prebid.js",
+  "version": "1.24.1-analytics",
   "description": "Header Bidding Management Library",
   "main": "src/prebid.js",
   "scripts": {
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/prebid/Prebid.js.git"
+    "url": "https://github.com/sovrn/Prebid.js.git"
   },
   "keywords": [
     "advertising",
@@ -105,5 +105,11 @@
     "core-js": "^2.4.1",
     "gulp-sourcemaps": "^2.6.0",
     "just-clone": "^1.0.2"
-  }
+  },
+  "publishConfig": {
+    "registry": "http://nexus.prod.lijit.com/repository/npm-sovrn/"
+  },
+  "files": [
+    "build/dist/prebid.js"
+  ]
 }
