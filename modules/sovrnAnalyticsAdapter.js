@@ -240,7 +240,7 @@ class LogError {
     this.error.auctionData = currentAuctions
   }
   send() {
-    this.body.ts = utils.timestamp()
+    this.error.ts = utils.timestamp()
     ajax(
       pbaUrl,
       null,
