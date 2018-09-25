@@ -442,4 +442,30 @@ describe('Sovrn Analytics Adapter', function () {
       expect(requestBody.winningBid).to.deep.include(expectedWinningBid);
     });
   });
-});
+  describe.only('Error Tracking', function() {
+    beforeEach(() => {
+      sovrnAnalyticsAdapter.enableAnalytics({
+        provider: 'sovrn',
+        options: {
+          affiliateId: 123
+        }
+      });
+      sinon.spy(sovrnAnalyticsAdapter, 'track');
+    });
+    afterEach(() => {
+      sovrnAnalyticsAdapter.disableAnalytics()
+      sovrnAnalyticsAdapter.track.restore()
+    });
+    it('should send an error message when a bid is recived for a closed auction', function() {
+      let auctionId = '678.678.678.678';
+      emitEvent('AUCTION_INIT', auctionInit, auctionId)
+      emitEvent('BID_REQUESTED', bidRequested, auctionId)
+      emitEvent('AUCTION_END', {}, auctionId);
+      requests[0].respond(200)
+      emitEvent('BID_RESPONSE', bidResponse, auctionId)
+      let requestBody = JSON.parse(requests[1].requestBody)
+      expect(requestBody.payload).to.equal('error')
+      expect(requestBody.message).to.include('Event Recieved after Auction Close Auction Id')
+    })
+  })
+})
