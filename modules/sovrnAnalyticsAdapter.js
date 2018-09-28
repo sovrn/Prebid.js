@@ -32,7 +32,6 @@ let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}),
         throw new Error('Event Recieved after Auction Close Auction Id ' + args.auctionId)
       }
       if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
-        console.log('NEW AUCTION CREATED FOR AUCTION ' + args.auctionId)
         currentAuctions[args.auctionId] = new AuctionData(this.affiliateId, args.auctionId)
       }
       switch (eventType) {
