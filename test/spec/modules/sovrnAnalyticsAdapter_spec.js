@@ -465,7 +465,6 @@ describe('Sovrn Analytics Adapter', function () {
       emitEvent('BID_REQUESTED', bidRequested, auctionId)
       emitEvent('AUCTION_END', {}, auctionId);
       requests[0].respond(200)
-      console.log(requests.length)
       emitEvent('BID_RESPONSE', bidResponse, auctionId)
       let requestBody = JSON.parse(requests[1].requestBody)
       expect(requestBody.payload).to.equal('error')
