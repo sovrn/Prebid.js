@@ -13,7 +13,11 @@ const {
     BID_REQUESTED,
     BID_ADJUSTMENT,
     BID_RESPONSE,
-    BID_WON
+    BID_WON,
+    BIDDER_DONE,
+    SET_TARGETING,
+    AUCTION_INIT,
+    AD_RENDER_FAILED
   }
 } = CONSTANTS
 
@@ -32,20 +36,42 @@ let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}),
         throw new Error('Event Recieved after Auction Close Auction Id ' + args.auctionId)
       }
       if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
+        console.log('NEW AUCTION CREATED FOR AUCTION ' + args.auctionId)
         currentAuctions[args.auctionId] = new AuctionData(this.affiliateId, args.auctionId)
       }
       switch (eventType) {
         case BID_REQUESTED:
+          console.log('BID_REQUESTED')
           currentAuctions[args.auctionId].bidRequested(args)
           break
         case BID_ADJUSTMENT:
+          console.log('BID_ADJUSTMENT')
           currentAuctions[args.auctionId].originalBid(args)
           break
         case BID_RESPONSE:
+          console.log('BID_RESPONSE')
           currentAuctions[args.auctionId].adjustedBid(args)
           break
         case AUCTION_END:
-          currentAuctions[args.auctionId].send();
+          console.log('AUCTION_END')
+          currentAuctions[args.auctionId].send()
+          break
+        case BIDDER_DONE:
+          console.log('BIDDER_DONE')
+          console.log('Args', args)
+          console.log('Howdy Camper')
+          break
+        case AUCTION_INIT:
+          console.log('AUCTION_INIT')
+          console.log(args)
+          break
+        case SET_TARGETING:
+          console.log('SET_TARGETING')
+          console.log(args)
+          break
+        case AD_RENDER_FAILED:
+          console.log('AD_RENDER_FAILED')
+          console.log(args)
           break
       }
     } catch (e) {
@@ -159,6 +185,7 @@ class AuctionData {
     const bidder = this.auction.requests.find(r => (r.bidderCode === event.bidderCode))
     if (!bidder) {
       this.auction.unsynced.push(JSON.parse(JSON.stringify(event)))
+      return
     }
     let bid = bidder.bids.find(b => (b.bidId === event.requestId))
 
