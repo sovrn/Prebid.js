@@ -4,6 +4,7 @@ import CONSTANTS from 'src/constants.json'
 import {ajaxBuilder} from 'src/ajax'
 import * as utils from 'src/utils'
 import {config} from 'src/config'
+import find from 'core-js/library/fn/array/find'
 
 const ajax = ajaxBuilder(0)
 
@@ -156,11 +157,11 @@ class AuctionData {
    * @return {*} - the bid
    */
   findBid(event) {
-    const bidder = this.auction.requests.find(r => (r.bidderCode === event.bidderCode))
+    const bidder = find(this.auction.requests, r => (r.bidderCode === event.bidderCode))
     if (!bidder) {
       this.auction.unsynced.push(JSON.parse(JSON.stringify(event)))
     }
-    let bid = bidder.bids.find(b => (b.bidId === event.requestId))
+    let bid = find(bidder.bids, b => (b.bidId === event.requestId))
 
     if (!bid) {
       event.unmatched = true
@@ -238,6 +239,7 @@ class LogError {
     this.error.affiliateId = affiliateId
     this.error.url = utils.getTopWindowLocation().href
     this.error.auctionData = currentAuctions
+    this.error.userAgent = navigator.userAgent
   }
   send() {
     this.error.ts = utils.timestamp()
