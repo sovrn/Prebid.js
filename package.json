@@ -110,6 +110,7 @@
     "registry": "http://nexus.prod.lijit.com/repository/npm-sovrn/"
   },
   "files": [
+    "*",
     "build/dist/prebid.js"
   ]
 }
