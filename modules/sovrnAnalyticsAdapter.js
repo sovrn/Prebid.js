@@ -5,6 +5,7 @@ import {ajaxBuilder} from 'src/ajax'
 import * as utils from 'src/utils'
 import {config} from 'src/config'
 import find from 'core-js/library/fn/array/find'
+import incldues from 'core-js/library/fn/array/includes'
 
 const ajax = ajaxBuilder(0)
 
@@ -193,7 +194,7 @@ class AuctionData {
     let bid = this.findBid(event)
     if (bid) {
       bid.originalValues = Object.keys(event).reduce((o, k) => {
-        if (JSON.stringify(bid[k]) !== JSON.stringify(event[k]) && !this.dropBidFields.includes(k)) {
+        if (JSON.stringify(bid[k]) !== JSON.stringify(event[k]) && !includes(this.dropBidFields., k)) {
           o[k] = bid[k]
           bid[k] = event[k]
         }
