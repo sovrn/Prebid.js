@@ -251,9 +251,9 @@ class LogError {
   }
   send() {
     if (this.error.data && this.error.data.requests) {
-      this.error.data.requests[0].forEach(request => {
-        if (request.bids[0]) {
-          request.bids[0].forEach(bid => {
+      this.error.data.requests.forEach(request => {
+        if (request.bids) {
+          request.bids.forEach(bid => {
             if (bid.ad) {
               delete bid.ad
             }
