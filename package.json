@@ -1,6 +1,6 @@
 {
-  "name": "prebid.js",
-  "version": "1.35.0",
+  "name": "sovrn-prebid.js",
+  "version": "1.35.0-analytics",
   "description": "Header Bidding Management Library",
   "main": "src/prebid.js",
   "scripts": {
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/prebid/Prebid.js.git"
+    "url": "https://github.com/sovrn/Prebid.js.git"
   },
   "keywords": [
     "advertising",
@@ -116,5 +116,12 @@
     "supports-color": "^5.5.0",
     "util-deprecate": "^1.0.2",
     "vlq": "^1.0.0"
-  }
+  },
+  "publishConfig": {
+    "registry": "http://nexus.prod.lijit.com/repository/npm-sovrn/"
+  },
+  "files": [
+    "*",
+    "build/dist/prebid.js"
+  ]
 }
