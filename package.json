@@ -1,6 +1,6 @@
 {
   "name": "sovrn-prebid.js",
-  "version": "1.35.0-analytics",
+  "version": "1.35.0-analytics2",
   "description": "Header Bidding Management Library",
   "main": "src/prebid.js",
   "scripts": {

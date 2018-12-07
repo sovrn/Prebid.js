@@ -26,14 +26,14 @@ const analyticsType = 'endpoint'
 let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}), {
   track({ eventType, args }) {
     try {
-      if (args.auctionId && currentAuctions[args.auctionId] === 'complete') {
-        throw new Error('Event Received after Auction Close Auction Id ', this.affiliateId, args.auctionId)
-      }
       if (eventType === BID_WON) {
         new BidWinner(this.affiliateId, args).send();
         return
       }
-      if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
+      else if (args.auctionId && currentAuctions[args.auctionId] === 'complete') {
+        throw new Error('Event Received after Auction Close Auction Id ', this.affiliateId, args.auctionId)
+      }
+      else if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
         currentAuctions[args.auctionId] = new AuctionData(this.affiliateId, args.auctionId)
       }
       switch (eventType) {
