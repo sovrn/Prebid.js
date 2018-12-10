@@ -29,11 +29,9 @@ let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}),
       if (eventType === BID_WON) {
         new BidWinner(this.affiliateId, args).send();
         return
-      }
-      else if (args.auctionId && currentAuctions[args.auctionId] === 'complete') {
+      } else if (args.auctionId && currentAuctions[args.auctionId] === 'complete') {
         throw new Error('Event Received after Auction Close Auction Id ', this.affiliateId, args.auctionId)
-      }
-      else if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
+      } else if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
         currentAuctions[args.auctionId] = new AuctionData(this.affiliateId, args.auctionId)
       }
       switch (eventType) {
@@ -129,7 +127,6 @@ class AuctionData {
    */
   constructor(affiliateId, auctionId) {
     this.auction = {}
-    this.auction.startTimer = new Date().getTime();
     this.auction.prebidVersion = $$PREBID_GLOBAL$$.version
     this.auction.affiliateId = affiliateId
     this.auction.auctionId = auctionId
@@ -143,6 +140,9 @@ class AuctionData {
     this.auction.requests = []
     this.auction.unsynced = []
     this.dropBidFields = ['auctionId', 'ad', 'requestId', 'bidderCode']
+    this.timerId = setTimeout(function() {
+      sovrnAnalyticsAdapter.timeout(this.auction);
+    }, 300000)
   }
 
   /**
@@ -154,7 +154,6 @@ class AuctionData {
     delete eventCopy.doneCbCallCount
     delete eventCopy.auctionId
     this.auction.requests.push(eventCopy)
-    sovrnAnalyticsAdapter.checkTimeout(this.auction)
   }
 
   /**
@@ -274,10 +273,9 @@ class LogError {
   }
 }
 
-sovrnAnalyticsAdapter.checkTimeout = function (auction) {
-  if (Math.abs(new Date().getTime() - auction.startTimer) > (5 * 60 * 1000)) {
-    currentAuctions[auction.auctionId] = 'dataCollectionEndedPrematurely'
-  }
+sovrnAnalyticsAdapter.timeout = function (auction) {
+  clearTimeout(currentAuctions[auction.auctionId].timerId)
+  currentAuctions[auction.auctionId] = 'dataCollectionEndedPrematurely'
 };
 
 export default sovrnAnalyticsAdapter;
