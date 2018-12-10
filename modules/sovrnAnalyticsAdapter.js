@@ -48,9 +48,6 @@ let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}),
           currentAuctions[args.auctionId].send()
           break
       }
-      if (args.auctionId && currentAuctions[args.auctionId] === 'dataCollectionEndedPrematurely') {
-        throw new Error('Data collection stopped. Auction lasted over five minutes. Auction Id ', this.affiliateId, args.auctionId)
-      }
     } catch (e) {
       new LogError(e, this.affiliateId, {eventType, args}).send()
     }
@@ -140,8 +137,8 @@ class AuctionData {
     this.auction.requests = []
     this.auction.unsynced = []
     this.dropBidFields = ['auctionId', 'ad', 'requestId', 'bidderCode']
-    this.timerId = setTimeout(function() {
-      sovrnAnalyticsAdapter.timeout(this.auction);
+    setTimeout(function() {
+      delete currentAuctions[this.auction.auctionId]
     }, 300000)
   }
 
@@ -272,10 +269,5 @@ class LogError {
     )
   }
 }
-
-sovrnAnalyticsAdapter.timeout = function (auction) {
-  clearTimeout(currentAuctions[auction.auctionId].timerId)
-  currentAuctions[auction.auctionId] = 'dataCollectionEndedPrematurely'
-};
 
 export default sovrnAnalyticsAdapter;
