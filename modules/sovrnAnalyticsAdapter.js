@@ -29,7 +29,7 @@ let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}),
       if (eventType === BID_WON) {
         new BidWinner(this.affiliateId, args).send();
         return
-      } else if (args.auctionId && currentAuctions[args.auctionId] === 'complete') {
+      } else if (args.auctionId && currentAuctions[args.auctionId] && currentAuctions[args.auctionId].status === 'complete') {
         throw new Error('Event Received after Auction Close Auction Id ', this.affiliateId, args.auctionId)
       } else if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
         currentAuctions[args.auctionId] = new AuctionData(this.affiliateId, args.auctionId)
@@ -137,9 +137,9 @@ class AuctionData {
     this.auction.requests = []
     this.auction.unsynced = []
     this.dropBidFields = ['auctionId', 'ad', 'requestId', 'bidderCode']
-    setTimeout(function() {
-      delete currentAuctions[this.auction.auctionId]
-    }, 300000)
+    setTimeout(function(id) {
+      delete currentAuctions[id]
+    }, 300000, this.auction.auctionId)
   }
 
   /**
@@ -222,7 +222,7 @@ class AuctionData {
     ajax(
       pbaUrl,
       () => {
-        currentAuctions[this.auction.auctionId] = 'complete'
+        currentAuctions[this.auction.auctionId] = {status: 'complete', auctionId: this.auction.auctionId}
       },
       JSON.stringify(this.auction),
       {
