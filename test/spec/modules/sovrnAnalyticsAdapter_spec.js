@@ -125,13 +125,13 @@ let bidResponseNoMatchingRequest = bidAdjustmentNoMatchingRequest;
 describe('Sovrn Analytics Adapter', function () {
   let xhr;
   let requests;
-  before(() => {
+  beforeEach(() => {
     xhr = sinon.useFakeXMLHttpRequest();
     xhr.onCreate = request => requests.push(request);
     requests = [];
     sinon.stub(events, 'getEvents').returns([]);
   });
-  after(() => {
+  afterEach(() => {
     xhr.restore();
     events.getEvents.restore();
   });
@@ -149,7 +149,7 @@ describe('Sovrn Analytics Adapter', function () {
       adaptermanager.enableAnalytics({
         provider: 'sovrn',
         options: {
-          affiliateId: 123
+          sovrnId: 123
         }
       });
 
@@ -184,7 +184,7 @@ describe('Sovrn Analytics Adapter', function () {
       sovrnAnalyticsAdapter.enableAnalytics({
         provider: 'sovrn',
         options: {
-          affiliateId: 123
+          sovrnId: 123
         }
       });
       sinon.spy(sovrnAnalyticsAdapter, 'track');
@@ -203,7 +203,7 @@ describe('Sovrn Analytics Adapter', function () {
       sovrnAnalyticsAdapter.enableAnalytics({
         provider: 'sovrn',
         options: {
-          affiliateId: 123
+          sovrnId: 123
         }
       });
       sinon.spy(sovrnAnalyticsAdapter, 'track');
@@ -227,7 +227,7 @@ describe('Sovrn Analytics Adapter', function () {
       assert.equal(currentAuction.auction.payload, 'auction');
       assert.equal(currentAuction.auction.priceGranularity, config.getConfig('priceGranularity'))
       assert.equal(currentAuction.auction.auctionId, auctionId);
-      assert.equal(currentAuction.auction.affiliateId, 123);
+      assert.equal(currentAuction.auction.sovrnId, 123);
     });
     it('should create a bidrequest object ', function() {
       let auctionId = '234.234.234.234';
@@ -307,7 +307,7 @@ describe('Sovrn Analytics Adapter', function () {
   });
   describe('auction data send ', function() {
     let expectedPostBody = {
-      affiliateId: 123,
+      sovrnId: 123,
       auctionId: '678.678.678.678',
       payload: 'auction',
       priceGranularity: 'medium',
@@ -349,7 +349,7 @@ describe('Sovrn Analytics Adapter', function () {
       sovrnAnalyticsAdapter.enableAnalytics({
         provider: 'sovrn',
         options: {
-          affiliateId: 123
+          sovrnId: 123
         }
       });
       sinon.spy(sovrnAnalyticsAdapter, 'track');
@@ -364,11 +364,11 @@ describe('Sovrn Analytics Adapter', function () {
       emitEvent('BID_REQUESTED', bidRequested, auctionId);
       emitEvent('BID_RESPONSE', bidResponse, auctionId);
       emitEvent('AUCTION_END', {}, auctionId);
-      let requestBody = JSON.parse(requests[1].requestBody);
+      let requestBody = JSON.parse(requests[0].requestBody);
       let requestsFromRequestBody = requestBody.requests[0];
       let bidsFromRequests = requestsFromRequestBody.bids[0];
       expect(requestBody).to.deep.include(expectedPostBody);
-      expect(requestBody.timeouts).to.deep.equal({buffer: 200, bidder: 3000});
+      expect(requestBody.timeouts).to.deep.equal({buffer: 400, bidder: 3000});
       expect(requestsFromRequestBody).to.deep.include(expectedRequests);
       expect(bidsFromRequests).to.deep.include(expectedBids);
       expect(bidsFromRequests.adserverTargeting).to.deep.include(expectedAdServerTargeting);
@@ -400,7 +400,7 @@ describe('Sovrn Analytics Adapter', function () {
       width: 300
     };
     let expectedBidWonBody = {
-      affiliateId: 123,
+      sovrnId: 123,
       payload: 'winner'
     };
     let expectedWinningBid = {
@@ -426,7 +426,7 @@ describe('Sovrn Analytics Adapter', function () {
       sovrnAnalyticsAdapter.enableAnalytics({
         provider: 'sovrn',
         options: {
-          affiliateId: 123
+          sovrnId: 123
         }
       });
       sinon.spy(sovrnAnalyticsAdapter, 'track');
@@ -436,18 +436,19 @@ describe('Sovrn Analytics Adapter', function () {
       sovrnAnalyticsAdapter.track.restore();
     });
     it('should send bid won data ', function () {
+      emitEvent('AUCTION_INIT', auctionInit, auctionId);
       emitEvent('BID_WON', bidWonEvent, auctionId);
-      let requestBody = JSON.parse(requests[2].requestBody);
+      let requestBody = JSON.parse(requests[0].requestBody);
       expect(requestBody).to.deep.include(expectedBidWonBody);
       expect(requestBody.winningBid).to.deep.include(expectedWinningBid);
     });
   });
-  describe.only('Error Tracking', function() {
+  describe('Error Tracking', function() {
     beforeEach(() => {
       sovrnAnalyticsAdapter.enableAnalytics({
         provider: 'sovrn',
         options: {
-          affiliateId: 123
+          sovrnId: 123
         }
       });
       sinon.spy(sovrnAnalyticsAdapter, 'track');
@@ -456,16 +457,16 @@ describe('Sovrn Analytics Adapter', function () {
       sovrnAnalyticsAdapter.disableAnalytics()
       sovrnAnalyticsAdapter.track.restore()
     });
-    it('should send an error message when a bid is recived for a closed auction', function() {
+    it('should send an error message when a bid is received for a closed auction', function() {
       let auctionId = '678.678.678.678';
       emitEvent('AUCTION_INIT', auctionInit, auctionId)
       emitEvent('BID_REQUESTED', bidRequested, auctionId)
-      emitEvent('AUCTION_END', {}, auctionId);
+      emitEvent('AUCTION_END', {}, auctionId)
       requests[0].respond(200)
       emitEvent('BID_RESPONSE', bidResponse, auctionId)
       let requestBody = JSON.parse(requests[1].requestBody)
       expect(requestBody.payload).to.equal('error')
-      expect(requestBody.message).to.include('Event Recieved after Auction Close Auction Id')
+      expect(requestBody.message).to.include('Event Received after Auction Close Auction Id')
     })
   })
 })
