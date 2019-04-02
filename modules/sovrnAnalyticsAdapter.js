@@ -27,14 +27,14 @@ let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}),
   track({ eventType, args }) {
     try {
       if (eventType === BID_WON) {
-        new BidWinner(this.affiliateId, args).send();
+        new BidWinner(this.sovrnId, args).send();
         return
       }
-      if (args.auctionId && currentAuctions[args.auctionId] === 'complete') {
-        throw new Error('Event Recieved after Auction Close Auction Id ' + args.auctionId)
+      if (args.auctionId && currentAuctions[args.auctionId] && currentAuctions[args.auctionId].status === 'complete') {
+        throw new Error('Event Received after Auction Close Auction Id ' + args.auctionId)
       }
       if (args.auctionId && currentAuctions[args.auctionId] === undefined) {
-        currentAuctions[args.auctionId] = new AuctionData(this.affiliateId, args.auctionId)
+        currentAuctions[args.auctionId] = new AuctionData(this.sovrnId, args.auctionId)
       }
       switch (eventType) {
         case BID_REQUESTED:
@@ -51,7 +51,7 @@ let sovrnAnalyticsAdapter = Object.assign(adapter({url: pbaUrl, analyticsType}),
           break
       }
     } catch (e) {
-      new LogError(e, this.affiliateId, {eventType, args}).send()
+      new LogError(e, this.sovrnId, {eventType, args}).send()
     }
   },
 })
@@ -64,14 +64,14 @@ sovrnAnalyticsAdapter.originEnableAnalytics = sovrnAnalyticsAdapter.enableAnalyt
 
 // override enableAnalytics so we can get access to the config passed in from the page
 sovrnAnalyticsAdapter.enableAnalytics = function (config) {
-  let affiliateId = ''
-  if (config && config.options && config.options.affiliateId) {
-    affiliateId = config.options.affiliateId;
+  let sovrnId = ''
+  if (config && config.options && (config.options.sovrnId || config.options.affiliateId)) {
+    sovrnId = config.options.sovrnId || config.options.affiliateId;
   } else {
-    utils.logError('Need affiliate Id to log auction results. Please contact a Sovrn representative if you do not know your affiliate Id.')
+    utils.logError('Need Sovrn Id to log auction results. Please contact a Sovrn representative if you do not know your Sovrn Id.')
     return
   }
-  sovrnAnalyticsAdapter.affiliateId = affiliateId;
+  sovrnAnalyticsAdapter.sovrnId = sovrnId;
   if (config.options.pbaUrl) {
     pbaUrl = config.options.pbaUrl;
   }
@@ -87,13 +87,13 @@ adaptermanager.registerAnalyticsAdapter({
 class BidWinner {
   /**
    * Creates a new bid winner
-   * @param {string} affiliateId - the affiliate id from the analytics config
+   * @param {string} sovrnId - the affiliate id from the analytics config
    * @param {*} event - the args object from the auction event
    */
-  constructor(affiliateId, event) {
+  constructor(sovrnId, event) {
     this.body = {}
-    this.body.prebidVersion = $$PREBID_GLOBAL$$.version
-    this.body.affiliateId = affiliateId
+    this.body.prebidVersion = CONSTANTS.REPO_AND_VERSION
+    this.body.sovrnId = sovrnId
     this.body.winningBid = JSON.parse(JSON.stringify(event))
     this.body.url = utils.getTopWindowLocation().href
     this.body.payload = 'winner'
@@ -121,13 +121,13 @@ class BidWinner {
 class AuctionData {
   /**
    * Create a new auction data collector
-   * @param {string} affiliateId - the affiliate id from the analytics config
+   * @param {string} sovrnId - the affiliate id from the analytics config
    * @param {string} auctionId - the auction id from the auction event
    */
-  constructor(affiliateId, auctionId) {
+  constructor(sovrnId, auctionId) {
     this.auction = {}
-    this.auction.prebidVersion = $$PREBID_GLOBAL$$.version
-    this.auction.affiliateId = affiliateId
+    this.auction.prebidVersion = CONSTANTS.REPO_AND_VERSION
+    this.auction.sovrnId = sovrnId
     this.auction.auctionId = auctionId
     this.auction.payload = 'auction'
     this.auction.timeouts = {
@@ -139,6 +139,10 @@ class AuctionData {
     this.auction.requests = []
     this.auction.unsynced = []
     this.dropBidFields = ['auctionId', 'ad', 'requestId', 'bidderCode']
+
+    setTimeout(function(id) {
+      delete currentAuctions[id]
+    }, 300000, this.auction.auctionId)
   }
 
   /**
@@ -219,7 +223,9 @@ class AuctionData {
     this.auction.ts = utils.timestamp()
     ajax(
       pbaUrl,
-      () => { currentAuctions[this.auction.auctionId] = 'complete' },
+      () => {
+        currentAuctions[this.auction.auctionId] = {status: 'complete', auctionId: this.auction.auctionId}
+      },
       JSON.stringify(this.auction),
       {
         contentType: 'application/json',
@@ -229,20 +235,32 @@ class AuctionData {
   }
 }
 class LogError {
-  constructor(e, affiliateId, data) {
+  constructor(e, sovrnId, data) {
     this.error = {}
-    this.error.ts = utils.timestamp()
     this.error.payload = 'error'
     this.error.message = e.message
-    this.error.data = data
     this.error.stack = e.stack
-    this.error.prebidVersion = $$PREBID_GLOBAL$$.version
-    this.error.affiliateId = affiliateId
+    this.error.data = data
+    this.error.prebidVersion = CONSTANTS.REPO_AND_VERSION
+    this.error.sovrnId = sovrnId
     this.error.url = utils.getTopWindowLocation().href
-    this.error.auctionData = currentAuctions
     this.error.userAgent = navigator.userAgent
   }
   send() {
+    if (this.error.data && this.error.data.requests) {
+      this.error.data.requests.forEach(request => {
+        if (request.bids) {
+          request.bids.forEach(bid => {
+            if (bid.ad) {
+              delete bid.ad
+            }
+          })
+        }
+      })
+    }
+    if (ErrorEvent.data && error.data.ad) {
+      delete error.data.ad
+    }
     this.error.ts = utils.timestamp()
     ajax(
       pbaUrl,
