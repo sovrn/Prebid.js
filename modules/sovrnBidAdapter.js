@@ -63,7 +63,7 @@ export const spec = {
           }};
       }
 
-      let url = `//ap.lijit.com/rtb/bid?` +
+      let url = `//ap.lijit.com/rtb/bid?acceptable_ads=true` +
         `src=$$REPO_AND_VERSION$$`;
       if (iv) url += `&iv=${iv}`;
 

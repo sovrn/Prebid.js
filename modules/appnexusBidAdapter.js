@@ -9,7 +9,7 @@ import includes from 'core-js/library/fn/array/includes';
 import { OUTSTREAM, INSTREAM } from '../src/video';
 
 const BIDDER_CODE = 'appnexus';
-const URL = '//ib.adnxs.com/ut/v3/prebid';
+const URL = '//ib.adnxs.com/ut/v3/prebid?acceptable_ads=true';
 const VIDEO_TARGETING = ['id', 'mimes', 'minduration', 'maxduration',
   'startdelay', 'skippable', 'playback_method', 'frameworks'];
 const USER_PARAMS = ['age', 'externalUid', 'segments', 'gender', 'dnt', 'language'];
