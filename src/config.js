@@ -304,10 +304,10 @@ export function newConfig() {
             memo[topic] = currBidderConfig[topic];
           }
         }
-        return memo;
+        return utils.deepClone(memo);
       }, {});
     }
-    return Object.assign({}, config);
+    return utils.deepClone(config);
   }
 
   /*

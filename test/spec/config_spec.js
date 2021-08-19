@@ -174,9 +174,9 @@ describe('config API', function () {
 
     const configResult = getConfig('mediaTypePriceGranularity');
     expect(configResult.banner).to.be.equal('medium');
-    expect(configResult.video).to.be.equal(customPriceGranularityVideo);
-    expect(configResult['video-instream']).to.be.equal(customPriceGranularityInstream);
-    expect(configResult['video-outstream']).to.be.equal(customPriceGranularityOutstream);
+    expect(configResult.video).to.be.eql(customPriceGranularityVideo);
+    expect(configResult['video-instream']).to.be.eql(customPriceGranularityInstream);
+    expect(configResult['video-outstream']).to.be.eql(customPriceGranularityOutstream);
     expect(configResult.native).to.be.equal('high');
   });
 
@@ -190,7 +190,7 @@ describe('config API', function () {
     };
     setConfig({ priceGranularity: goodConfig });
     expect(getConfig('priceGranularity')).to.be.equal('custom');
-    expect(getConfig('customPriceBucket')).to.equal(goodConfig);
+    expect(getConfig('customPriceBucket')).to.eql(goodConfig);
   });
 
   it('sets deviceAccess', function () {
