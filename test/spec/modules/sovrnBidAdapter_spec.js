@@ -396,7 +396,7 @@ describe('sovrnBidAdapter', function() {
     })
 
     it('should get correct bid response when dealId is passed', function () {
-      response.body.seatbid[0].bid[0].dealid = 'baking';
+      response.body.seatbid[0].bid[0].dealid = 'baking'
       const expectedResponse = {
         ...baseResponse,
         dealId: 'baking',
@@ -408,7 +408,7 @@ describe('sovrnBidAdapter', function() {
     })
 
     it('should get correct bid response when ttl is set', function () {
-      response.body.seatbid[0].bid[0].ext = { 'ttl': 480 }
+      response.body.seatbid[0].bid[0].ext = { ttl: 480 }
 
       const expectedResponse = {
         ...baseResponse,
@@ -589,20 +589,20 @@ describe('sovrnBidAdapter', function() {
   describe('prebid 3 upgrade', function() {
     const bidRequest = {
       ...baseBidRequest,
-      'params': {
-        'tagid': '403370'
+      params: {
+        tagid: '403370'
       },
-      'mediaTypes': {
-        'banner': {
-          'sizes': [
+      mediaTypes: {
+        banner: {
+          sizes: [
             [300, 250],
             [300, 600]
           ]
         }
       },
-    };
-    const request = spec.buildRequests([bidRequest], baseBidderRequest);
-    const payload = JSON.parse(request.data);
+    }
+    const request = spec.buildRequests([bidRequest], baseBidderRequest)
+    const payload = JSON.parse(request.data)
 
     it('gets sizes from mediaTypes.banner', function() {
       expect(payload.imp[0].banner.format).to.deep.equal([{w: 300, h: 250}, {w: 300, h: 600}])
@@ -611,8 +611,8 @@ describe('sovrnBidAdapter', function() {
     })
 
     it('gets correct site info', function() {
-      expect(payload.site.page).to.equal('http://example.com/page.html');
-      expect(payload.site.domain).to.equal('example.com');
+      expect(payload.site.page).to.equal('http://example.com/page.html')
+      expect(payload.site.domain).to.equal('example.com')
     })
   })
 })
