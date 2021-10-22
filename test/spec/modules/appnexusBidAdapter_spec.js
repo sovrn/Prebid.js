@@ -1087,8 +1087,7 @@ describe('AppNexusAdapter', function () {
               'ver': '1.0',
               'complete': 0,
               'nodes': [{
-                'bsid': '958',
-                'name': 'xandr'
+                'bsid': '958'
               }]
             }
           }
