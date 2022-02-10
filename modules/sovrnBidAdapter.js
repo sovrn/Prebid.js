@@ -162,7 +162,7 @@ export const spec = {
       const urlParams = new URLSearchParams(window.location.search)
       const uuid = urlParams.get('testUuid')
 
-      let url = `https://localhost:8090/rtb/prebidResponse1/bid/openrtb25`;
+      let url = `https://fake-rtb-providers:8090/rtb/prebidResponse1/bid/openrtb25`;
       if (iv) url += `&iv=${iv}`;
 
       return {
