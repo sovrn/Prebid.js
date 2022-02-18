@@ -25,8 +25,8 @@ const ORTB_VIDEO_PARAMS = {
   'boxingallowed': (value) => [0, 1].indexOf(value) !== -1,
   'playbackmethod': (value) => Array.isArray(value) && value.every(v => v >= 1 && v <= 6),
   'playbackend': (value) => [1, 2, 3].indexOf(value) !== -1,
-  'delivery': (value) => [1, 2, 3].indexOf(value) !== -1,
-  'pos': (value) => Array.isArray(value) && value.every(v => v >= 0 && v <= 7),
+  'delivery': (value) => Array.isArray(value) && value.every(v => v >= 1 && v <= 3),
+  'pos': (value) => isInteger(value) && value >= 1 && value <= 7,
   'api': (value) => Array.isArray(value) && value.every(v => v >= 1 && v <= 6)
 }
 
