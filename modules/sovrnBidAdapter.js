@@ -1,8 +1,8 @@
 import { _each, getBidIdParameter, isArray, deepClone, parseUrl, getUniqueIdentifierStr, deepSetValue, logError, deepAccess, isInteger, logWarn } from '../src/utils.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js'
 import { ADPOD, BANNER, VIDEO } from '../src/mediaTypes.js'
-import { createEidsArray } from './userId/eids.js';
-import {config} from '../src/config.js';
+import { createEidsArray } from './userId/eids.js'
+import {config} from '../src/config.js'
 
 const ORTB_VIDEO_PARAMS = {
   'mimes': (value) => Array.isArray(value) && value.length > 0 && value.every(v => typeof v === 'string'),
@@ -12,7 +12,7 @@ const ORTB_VIDEO_PARAMS = {
   'w': (value) => isInteger(value),
   'h': (value) => isInteger(value),
   'startdelay': (value) => isInteger(value),
-  'placement': (value) => Array.isArray(value) && value.every(v => v >= 1 && v <= 5),
+  'placement': (value) => isInteger(value) && value >= 1 && value <= 5,
   'linearity': (value) => [1, 2].indexOf(value) !== -1,
   'skip': (value) => [0, 1].indexOf(value) !== -1,
   'skipmin': (value) => isInteger(value),
@@ -25,8 +25,8 @@ const ORTB_VIDEO_PARAMS = {
   'boxingallowed': (value) => [0, 1].indexOf(value) !== -1,
   'playbackmethod': (value) => Array.isArray(value) && value.every(v => v >= 1 && v <= 6),
   'playbackend': (value) => [1, 2, 3].indexOf(value) !== -1,
-  'delivery': (value) => [1, 2, 3].indexOf(value) !== -1,
-  'pos': (value) => Array.isArray(value) && value.every(v => v >= 0 && v <= 7),
+  'delivery': (value) => Array.isArray(value) && value.every(v => v >= 1 && v <= 3),
+  'pos': (value) => isInteger(value) && value >= 1 && value <= 7,
   'api': (value) => Array.isArray(value) && value.every(v => v >= 1 && v <= 6)
 }
 
@@ -51,8 +51,9 @@ export const spec = {
 
   /**
    * Format the bid request object for our endpoint
-   * @param {BidRequest[]} bidRequests Array of Sovrn bidders
    * @return object of parameters for Prebid AJAX request
+   * @param bidReqs
+   * @param bidderRequest
    */
   buildRequests: function(bidReqs, bidderRequest) {
     try {
@@ -189,14 +190,12 @@ export const spec = {
    * @return {Bid[]} An array of formatted bids.
   */
   interpretResponse: function({ body: {id, seatbid} }) {
+    if (!id || !seatbid || !Array.isArray(seatbid)) return []
+
     try {
-      let sovrnBidResponses = [];
-      if (id &&
-        seatbid &&
-        seatbid.length > 0 &&
-        seatbid[0].bid &&
-        seatbid[0].bid.length > 0) {
-        seatbid[0].bid.map(sovrnBid => {
+      return seatbid
+        .filter(seat => seat)
+        .map(seat => seat.bid.map(sovrnBid => {
           const bid = {
             requestId: sovrnBid.impid,
             cpm: parseFloat(sovrnBid.price),
@@ -206,23 +205,23 @@ export const spec = {
             dealId: sovrnBid.dealid || null,
             currency: 'USD',
             netRevenue: true,
-            ttl: sovrnBid.ext ? (sovrnBid.ext.ttl || 90) : 90,
+            mediaType: sovrnBid.nurl ? BANNER : VIDEO,
+            ttl: sovrnBid.ext?.ttl || 90,
             meta: { advertiserDomains: sovrnBid && sovrnBid.adomain ? sovrnBid.adomain : [] }
           }
 
-          if (!sovrnBid.nurl) {
-            bid.mediaType = VIDEO
-            bid.vastXml = decodeURIComponent(sovrnBid.adm)
-          } else {
-            bid.mediaType = BANNER
+          if (sovrnBid.nurl) {
             bid.ad = decodeURIComponent(`${sovrnBid.adm}<img src="${sovrnBid.nurl}">`)
+          } else {
+            bid.vastXml = decodeURIComponent(sovrnBid.adm)
           }
-          sovrnBidResponses.push(bid);
-        });
-      }
-      return sovrnBidResponses
+
+          return bid
+        }))
+        .flat()
     } catch (e) {
-      logError('Could not intrepret bidresponse, error deatils:', e);
+      logError('Could not interpret bidresponse, error details:', e)
+      return e
     }
   },
 
