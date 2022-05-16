@@ -67,11 +67,53 @@ describe('sovrnBidAdapter', function() {
       })
 
       it('sets the proper banner object', function() {
+        const bannerBidRequest = {
+          ...baseBidRequest,
+          mediaTypes: {
+            banner: {}
+          }
+        }
+        const request = spec.buildRequests([bannerBidRequest], baseBidderRequest)
+        const payload = JSON.parse(request.data)
         const impression = payload.imp[0]
 
         expect(impression.banner.format).to.deep.equal([{w: 300, h: 250}, {w: 300, h: 600}])
         expect(impression.banner.w).to.equal(1)
         expect(impression.banner.h).to.equal(1)
+      })
+
+      it('sets the proper video object', function() {
+        const width = 640
+        const height = 480
+        const mimes = ['video/mp4', 'application/javascript']
+        const protocols = [2, 5]
+        const minduration = 5
+        const maxduration = 60
+        const startdelay = 0
+        const videoBidRequest = {
+          ...baseBidRequest,
+          mediaTypes: {
+            video: {
+              mimes,
+              protocols,
+              playerSize: [[width, height], [360, 240]],
+              minduration,
+              maxduration,
+              startdelay
+            }
+          }
+        }
+        const request = spec.buildRequests([videoBidRequest], baseBidderRequest)
+        const payload = JSON.parse(request.data)
+        const impression = payload.imp[0]
+
+        expect(impression.video.w).to.equal(width)
+        expect(impression.video.h).to.equal(height)
+        expect(impression.video.mimes).to.have.same.members(mimes)
+        expect(impression.video.protocols).to.have.same.members(protocols)
+        expect(impression.video.minduration).to.equal(minduration)
+        expect(impression.video.maxduration).to.equal(maxduration)
+        expect(impression.video.startdelay).to.equal(startdelay)
       })
 
       it('gets correct site info', function() {
@@ -95,10 +137,12 @@ describe('sovrnBidAdapter', function() {
         params: {
           iv: 'vet'
         },
-        sizes: [300, 250]
+        sizes: [300, 250],
+        mediaTypes: {
+          banner: {}
+        },
       }
       const request = spec.buildRequests([singleSizeBidRequest], baseBidderRequest)
-
       const payload = JSON.parse(request.data)
       const impression = payload.imp[0]
 
@@ -132,7 +176,6 @@ describe('sovrnBidAdapter', function() {
         },
         bids: [baseBidRequest]
       }
-
       const { regs, user } = JSON.parse(spec.buildRequests([baseBidRequest], bidderRequest).data)
 
       expect(regs.ext.gdpr).to.exist.and.to.be.a('number')
@@ -151,7 +194,6 @@ describe('sovrnBidAdapter', function() {
         uspConsent: '1NYN',
         bids: [baseBidRequest]
       }
-
       const data = JSON.parse(spec.buildRequests([baseBidRequest], bidderRequest).data)
 
       expect(data.regs.ext['us_privacy']).to.equal(bidderRequest.uspConsent)
@@ -174,7 +216,6 @@ describe('sovrnBidAdapter', function() {
         }
       }
       const schainRequests = [schainRequest, baseBidRequest]
-
       const data = JSON.parse(spec.buildRequests(schainRequests, baseBidderRequest).data)
 
       expect(data.source.ext.schain.nodes.length).to.equal(1)
@@ -189,7 +230,6 @@ describe('sovrnBidAdapter', function() {
         }
       }
       const criteoIdRequests = [criteoIdRequest, baseBidRequest]
-
       const ext = JSON.parse(spec.buildRequests(criteoIdRequests, baseBidderRequest).data).user.ext
       const firstEID = ext.eids[0]
       const secondEID = ext.eids[1]
@@ -235,7 +275,6 @@ describe('sovrnBidAdapter', function() {
           bidfloor: 2.00
         }
       }
-
       const request = spec.buildRequests([floorBid], baseBidderRequest)
       const payload = JSON.parse(request.data)
 
@@ -250,7 +289,6 @@ describe('sovrnBidAdapter', function() {
         tagid: 1234,
         bidfloor: 2.00
       }
-
       const request = spec.buildRequests([floorBid], baseBidderRequest)
       const impression = JSON.parse(request.data).imp[0]
 
@@ -300,7 +338,6 @@ describe('sovrnBidAdapter', function() {
             }
           }
         }
-
         const request = spec.buildRequests([fpdBidRequest], baseBidderRequest)
         const payload = JSON.parse(request.data)
 
@@ -322,7 +359,6 @@ describe('sovrnBidAdapter', function() {
             }
           }
         }
-
         const request = spec.buildRequests([fpdBid], baseBidderRequest)
         const impression = JSON.parse(request.data).imp[0]
 
@@ -345,24 +381,38 @@ describe('sovrnBidAdapter', function() {
       currency: 'USD',
       netRevenue: true,
       mediaType: 'banner',
-      ad: decodeURIComponent(`<!-- Creative --><img src="<!-- NURL -->">`),
       ttl: 90,
-      meta: { advertiserDomains: [] }
+      meta: { advertiserDomains: [] },
+      ad: decodeURIComponent(`<!-- Creative --><img src="<!-- NURL -->">`),
     }
+    const videoBid = {
+      id: 'a_403370_332fdb9b064040ddbec05891bd13ab28',
+      crid: 'creativelycreatedcreativecreative',
+      impid: '263c448586f5a1',
+      price: 0.45882675,
+      nurl: '',
+      adm: '<VAST version="4.2" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.iab.com/VAST">key%3Dvalue</VAST>',
+      h: 480,
+      w: 640
+    }
+    const bannerBid = {
+      id: 'a_403370_332fdb9b064040ddbec05891bd13ab28',
+      crid: 'creativelycreatedcreativecreative',
+      impid: '263c448586f5a1',
+      price: 0.45882675,
+      nurl: '<!-- NURL -->',
+      adm: '<!-- Creative -->',
+      h: 90,
+      w: 728
+    }
+
     beforeEach(function () {
       response = {
         body: {
           id: '37386aade21a71',
           seatbid: [{
             bid: [{
-              id: 'a_403370_332fdb9b064040ddbec05891bd13ab28',
-              crid: 'creativelycreatedcreativecreative',
-              impid: '263c448586f5a1',
-              price: 0.45882675,
-              nurl: '<!-- NURL -->',
-              adm: '<!-- Creative -->',
-              h: 90,
-              w: 728
+              ...bannerBid
             }]
           }]
         }
@@ -375,7 +425,6 @@ describe('sovrnBidAdapter', function() {
         ad: decodeURIComponent(`<!-- Creative --><img src=<!-- NURL -->>`),
         ttl: 60000,
       }
-
       const result = spec.interpretResponse(response)
 
       expect(Object.keys(result[0])).to.deep.equal(Object.keys(expectedResponse))
@@ -389,7 +438,6 @@ describe('sovrnBidAdapter', function() {
         creativeId: response.body.seatbid[0].bid[0].id,
         ad: decodeURIComponent(`<!-- Creative --><img src="<!-- NURL -->">`),
       }
-
       const result = spec.interpretResponse(response)
 
       expect(result[0]).to.deep.equal(expectedResponse)
@@ -401,7 +449,6 @@ describe('sovrnBidAdapter', function() {
         ...baseResponse,
         dealId: 'baking',
       }
-
       const result = spec.interpretResponse(response)
 
       expect(result[0]).to.deep.equal(expectedResponse)
@@ -414,7 +461,6 @@ describe('sovrnBidAdapter', function() {
         ...baseResponse,
         ttl: 480,
       }
-
       const result = spec.interpretResponse(response)
 
       expect(result[0]).to.deep.equal(expectedResponse)
@@ -427,7 +473,133 @@ describe('sovrnBidAdapter', function() {
           seatbid: []
         }
       }
+      const result = spec.interpretResponse(response)
 
+      expect(result.length).to.equal(0)
+    })
+
+    it('should get the correct bid response with 2 different bids', function () {
+      const expectedVideoResponse = {
+        ...baseResponse,
+        vastXml: decodeURIComponent(videoBid.adm)
+      }
+      delete expectedVideoResponse.ad
+
+      const expectedBannerResponse = {
+        ...baseResponse
+      }
+
+      response.body.seatbid = [{ bid: [bannerBid] }, { bid: [videoBid] }]
+      const result = spec.interpretResponse(response)
+
+      expect(Object.keys(result[0])).to.deep.equal(Object.keys(expectedBannerResponse))
+      expect(Object.keys(result[1])).to.deep.equal(Object.keys(expectedVideoResponse))
+    })
+
+    it('should get the correct bid response with 2 seatbid items', function () {
+      const expectedResponse = {
+        ...baseResponse
+      }
+      response.body.seatbid = [response.body.seatbid[0], response.body.seatbid[0]]
+
+      const result = spec.interpretResponse(response)
+
+      expect(Object.keys(result[0])).to.deep.equal(Object.keys(expectedResponse))
+      expect(Object.keys(result[1])).to.deep.equal(Object.keys(expectedResponse))
+    })
+  })
+
+  describe('interpretResponse video', function () {
+    let videoResponse
+    const bidAdm = '<VAST version="4.2" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.iab.com/VAST">key%3Dvalue</VAST>'
+    const decodedBidAdm = decodeURIComponent(bidAdm)
+    const baseVideoResponse = {
+      requestId: '263c448586f5a1',
+      cpm: 0.45882675,
+      width: 640,
+      height: 480,
+      creativeId: 'creativelycreatedcreativecreative',
+      dealId: null,
+      currency: 'USD',
+      netRevenue: true,
+      mediaType: 'video',
+      ttl: 90,
+      meta: { advertiserDomains: [] },
+      vastXml: decodedBidAdm
+    }
+
+    beforeEach(function () {
+      videoResponse = {
+        body: {
+          id: '37386aade21a71',
+          seatbid: [{
+            bid: [{
+              id: 'a_403370_332fdb9b064040ddbec05891bd13ab28',
+              crid: 'creativelycreatedcreativecreative',
+              impid: '263c448586f5a1',
+              price: 0.45882675,
+              nurl: '',
+              adm: bidAdm,
+              h: 480,
+              w: 640
+            }]
+          }]
+        }
+      }
+    })
+
+    it('should get the correct bid response', function () {
+      const expectedResponse = {
+        ...baseVideoResponse,
+        ttl: 60000,
+      }
+      const result = spec.interpretResponse(videoResponse)
+
+      expect(result[0]).to.have.deep.keys(expectedResponse)
+    })
+
+    it('crid should default to the bid id if not on the response', function () {
+      delete videoResponse.body.seatbid[0].bid[0].crid
+
+      const expectedResponse = {
+        ...baseVideoResponse,
+        creativeId: videoResponse.body.seatbid[0].bid[0].id,
+      }
+      const result = spec.interpretResponse(videoResponse)
+
+      expect(result[0]).to.deep.equal(expectedResponse)
+    })
+
+    it('should get correct bid response when dealId is passed', function () {
+      videoResponse.body.seatbid[0].bid[0].dealid = 'baking'
+      const expectedResponse = {
+        ...baseVideoResponse,
+        dealId: 'baking',
+      }
+      const result = spec.interpretResponse(videoResponse)
+
+      expect(result[0]).to.deep.equal(expectedResponse)
+    })
+
+    it('should get correct bid response when ttl is set', function () {
+      videoResponse.body.seatbid[0].bid[0].ext = { 'ttl': 480 }
+
+      const expectedResponse = {
+        ...baseVideoResponse,
+        ttl: 480,
+      }
+      const result = spec.interpretResponse(videoResponse)
+
+      expect(result[0]).to.deep.equal(expectedResponse)
+    })
+
+    it('handles empty bid response', function () {
+      const response = {
+        body: {
+          id: '37386aade21a71',
+          seatbid: []
+        }
+      }
       const result = spec.interpretResponse(response)
 
       expect(result.length).to.equal(0)
@@ -490,7 +662,6 @@ describe('sovrnBidAdapter', function() {
         type: 'iframe',
         url: 'https://ap.lijit.com/beacon?informer=13487408',
       }
-
       const returnStatement = spec.getUserSyncs(syncOptions, serverResponse)
 
       expect(returnStatement[0]).to.deep.equal(expectedReturnStatement)
@@ -553,7 +724,6 @@ describe('sovrnBidAdapter', function() {
 
     it('should include pixel syncs', function() {
       const pixelEnabledOptions = { iframeEnabled: false, pixelEnabled: true }
-
       const otherResponce = {
         ...serverResponse,
         body: {
