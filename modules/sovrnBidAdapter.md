@@ -20,8 +20,7 @@ var adUnits = [
     bids: [{
       bidder: 'sovrn',
       params: {
-        tagid: '403370',
-        bidfloor: 0.01
+        tagid: '403370'
       }
     }]
   }, {
@@ -67,8 +66,7 @@ var videoAdUnit = {
       bidder: 'sovrn',
       // Prebid Server Bidder Params https://docs.prebid.org/dev-docs/pbs-bidders.html#sovrn
       params: {
-        tagid: '315045',
-        bidfloor: '0.04',
+        tagid: '315045'
       },
     },
   ],
@@ -94,8 +92,7 @@ var adUnits = [
         bidder: 'sovrn',
         // Prebid Server Bidder Params https://docs.prebid.org/dev-docs/pbs-bidders.html#sovrn
         params: {
-          tagid: '315045',
-          bidfloor: '0.04',
+          tagid: '315045'
         },
       },
     ],

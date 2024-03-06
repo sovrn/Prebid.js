@@ -112,7 +112,6 @@ export const spec = {
           mediaType: bid.mediaTypes && bid.mediaTypes.banner ? 'banner' : 'video',
           size: '*'
         }) : {}
-        floorInfo.floor = floorInfo.floor || getBidIdParameter('bidfloor', bid.params)
 
         const imp = {
           adunitcode: bid.adUnitCode,

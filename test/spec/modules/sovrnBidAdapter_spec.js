@@ -502,7 +502,7 @@ describe('sovrnBidAdapter', function() {
       expect(deals[0]).to.equal('test1')
       expect(deals[1]).to.equal('test2')
     })
-    it('should use the floor provided from the floor module if present', function() {
+    it('should use the floor provided from the floor module if present (legacy bidfloor param is ignored)', function() {
       const floorBid = {
         ...baseBidRequest,
         getFloor: () => ({currency: 'USD', floor: 1.10}),
@@ -516,7 +516,7 @@ describe('sovrnBidAdapter', function() {
 
       expect(payload.imp[0].bidfloor).to.equal(1.10)
     })
-    it('should use the floor from the param if there is no floor from the floor module', function() {
+    it('floor should be undefined if there is no floor from the floor module (legacy bidfloor param is ignored)', function() {
       const floorBid = {
         ...baseBidRequest,
         getFloor: () => ({})
@@ -528,7 +528,7 @@ describe('sovrnBidAdapter', function() {
       const request = spec.buildRequests([floorBid], baseBidderRequest)
       const impression = JSON.parse(request.data).imp[0]
 
-      expect(impression.bidfloor).to.equal(2.00)
+      expect(impression.bidfloor).to.be.undefined
     })
     describe('First Party Data', function () {
       it('should provide first party data if provided', function() {
